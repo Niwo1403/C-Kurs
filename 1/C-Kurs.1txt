@@ -1,0 +1,5 @@
+cc -o prgrammname programmname.c
+
+int main (int argc, char *argv[]){}
+
+str to int: atoi(str)
