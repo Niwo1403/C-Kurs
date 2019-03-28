@@ -1,0 +1,33 @@
+extern keyword -> function in anderer Datei initialisiert
+
+automatisches Objekt: alloziert, dealloziert wenn umgebener Block betreten oder verlassen wird
+statische Objekte: statische Variablen werden bei Programmstart alloziert und bei Programmende dealloziert
+dynamisches Objekt: mit malloc alloziert, mit free dealloziert
+Thread-lokalers Objekt: statisches Objekt; jeder Thread hat eigene Kopie
+
+static int i; -> i hat interne Verlinkung
+static voif foo(); -> foo nur in der Datei verfügbar
+static int j; in Function: Wert bleibt, ist aber nur in Funktion verfügbar
+static bezieht sich auf die Verlinkung, beieinflusst aber nicht die Sichtbarkeit
+extern: für globale Variablen
+register: Variable wird in Register gespeichert
+_Thread_local: bestimmt Threa-lokele Speicherklasse und externe Verlinkung
+typedef char *string;
+const: Variable/Objekt darf nach Initialisierung nicht geändert werden
+restrict: auf Objekt wird nur durch diesen Zeiger zugegriffen
+volatile: Kompiler darf Zugriffe auf das Objekt nicht optimieren
+_Atomic: Variable oder Obkekt ist atomar
+
+void Pointer:
+  -zeigt auf keinen konkreten typ
+  -kann nicht Pointer-Arithmetik nutzen
+  -z.B:malloc gibt void Pointer zurück
+
+Terminal/consol:
+  -Shell als raw öffnen -> mehr Freiheiten
+
+fseek, fsetpos, ungetchar Function für Textdoc.
+
+cc -std=c11 -Wall -Werror -Wextra -pedantic -o programmname.o programmname.c -c //erstellt .o Datei
+  cc -o programm a.o b.o c.o
+  cc -o programm a.o -lm (verlinkt Mathe Bibliothek (m) )

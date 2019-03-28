@@ -1,0 +1,15 @@
+char buf[20];
+memset(buf, '\0', 20);
+strcpy(buf, "Hello "); //besser: strcpy_s(buf, 7, "Hello ");
+strcat(bufm "Welt!\n");
+
+Präprozessor: -E
+Kompiler: -S
+Assambler: -c
+Link Editor: Fertiges Programm
+
+int *foo = malloc(sizeof *foo);
+if (foo == NULL)
+  perror("malloc");
+...
+free(foo);//nur für mit malloc erstellte Zeiger
