@@ -1,15 +1,17 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 struct {
   int red, green, blue;
-}pixel;
+}Pixel;
 struct {
   int breite, hoehe;
   int max_helligkeit ;
-  struct pixel *leinwand ;
-}picture;
-void read_pic(struct picture *, char *path);
-void write_pic(struct picture, char *path);
+  struct Pixel *leinwand ;
+}Picture;
+void read_pic(struct Picture *, char *path);
+void write_pic(struct Picture, char *path);
 char *build_str(struct Pixel);
 int ilen(int);
 
@@ -19,14 +21,18 @@ int main(int argc, char *argv[]){
     return 1;
   }
 
-  struct picture ptr;
-  read_pic(&ptr, argv[1]);
-  write_pic(ptr, argv[2]);
+  struct Picture *ptr = malloc(sizeof(struct Picture));
+  if (ptr == NULL){
+    perror("malloc");
+    return 1;
+  }
+  read_pic(ptr, argv[1]);
+  write_pic(*ptr, argv[2]);
 
   return 0;
 }
 
-void read_pic(struct picture *, char *path){
+void read_pic(struct Picture *picture, char *path){
   struct Pixel *tmp = picture->leinwand;
   File *file = fopen(path, "r");
   char c = fgetc(file);
@@ -94,7 +100,7 @@ void read_pic(struct picture *, char *path){
   picture->leinwand = tmp;
 }
 
-void write_pic(struct picture, char *path){
+void write_pic(struct Picture picture, char *path){
   struct Pixel *tmp = picture.leinwand;
   FILE *file = fopen(path, "w");
   int eUzZeile = ilen(picture.hoehe)+1+ilen(picture.breite)+1 + ilen(picture.max_helligkeit)+1;//Anzahl der chars in der ersten und zweiten Zeile
@@ -134,7 +140,7 @@ int ilen(int num){
 
 char *build_str(struct Pixel pxl){
   char *ret = malloc(12);
-  strcpy(ret, 12, "           \0");
+  strcpy(ret, "           \0");
   ret += 4-ilen(pxl.red);
   sprintf(ret, "%d", pxl.red);
   ret += ilen(pxl.red);
