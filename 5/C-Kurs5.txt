@@ -26,6 +26,8 @@ Makefiles:
     CPPFLAGS = -MMD -MF $*.d
     all: main
     include mod1/Makefile
+    OBJS += mod1/mod1.o
+    include mod1/*.d
     main: $(OBJS) //build main from all OBJS
     %.d: ;
     clean:
@@ -34,3 +36,8 @@ Makefiles:
     .PRECIOUS: *.d *.o
 
   gcc -MM main.c  -z.B:->  main.o: main.c test.h
+
+
+Git
+    -branches: Verzweigungen
+      -git checkout <anderer brench/Zustand> //wechselt brench
