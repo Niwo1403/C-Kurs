@@ -2,17 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct {
+struct Pixel{
   int red, green, blue;
-}Pixel;
-struct {
+};
+struct Picture{
   int breite, hoehe;
-  int max_helligkeit ;
-  struct Pixel *leinwand ;
-}Picture;
+  int max_helligkeit;
+  struct Pixel *leinwand;
+};
 void read_pic(struct Picture *, char *path);
 void write_pic(struct Picture, char *path);
-char *build_str(struct Pixel);
+char *build_str(struct Pixel *);
 int ilen(int);
 
 int main(int argc, char *argv[]){
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]){
 
 void read_pic(struct Picture *picture, char *path){
   struct Pixel *tmp = picture->leinwand;
-  File *file = fopen(path, "r");
+  FILE *file = fopen(path, "r");
   char c = fgetc(file);
   picture->breite = 0;
   while (c != ' '){
@@ -61,7 +61,7 @@ void read_pic(struct Picture *picture, char *path){
   for (int i = 0; i < picture->hoehe; i++){//Zeilen
     for (int j = 0; j < picture->breite; j++){//Reihen
       //rot:
-      picture->leinwand->red = 0
+      picture->leinwand->red = 0;
       for (int k = 0; k < 3; k++){
         c = fgetc(file);
         if (c != ' '){
@@ -104,7 +104,7 @@ void write_pic(struct Picture picture, char *path){
   struct Pixel *tmp = picture.leinwand;
   FILE *file = fopen(path, "w");
   int eUzZeile = ilen(picture.hoehe)+1+ilen(picture.breite)+1 + ilen(picture.max_helligkeit)+1;//Anzahl der chars in der ersten und zweiten Zeile
-  char *str = malloc(eUzZeile + picture.hoehe*(11+(picture.breite-1)*14+1) + 1);
+  char *ret = malloc(eUzZeile + picture.hoehe*(11+(picture.breite-1)*14+1) + 1);
 
   //erste, zweite Zeile:
   sprintf(ret, "%d %d\n%d", picture.breite, picture.hoehe, picture.max_helligkeit);
@@ -118,7 +118,7 @@ void write_pic(struct Picture picture, char *path){
         strcat(ret, "   ");
         ret += 3;
       }
-      strcat(ret, build_str(*(picture.leinwand)));
+      strcat(ret, build_str(picture.leinwand));
       picture.leinwand++;
       ret += 11;
     }
@@ -126,7 +126,7 @@ void write_pic(struct Picture picture, char *path){
     picture.leinwand++;
     ret++;
   }
-  picture.leinwand -= (picture.breite+1) * picture.hoehe;
+  picture.leinwand = tmp;
   fclose(file);
 }
 
@@ -138,18 +138,18 @@ int ilen(int num){
   return ret;
 }
 
-char *build_str(struct Pixel pxl){
+char *build_str(struct Pixel *pxl){
   char *ret = malloc(12);
   strcpy(ret, "           \0");
-  ret += 4-ilen(pxl.red);
-  sprintf(ret, "%d", pxl.red);
-  ret += ilen(pxl.red);
-  ret += 4-ilen(pxl.green);
-  sprintf(ret, "%d", pxl.green);
-  ret += ilen(pxl.green);
-  ret += 4-ilen(pxl.blue);
-  sprintf(ret, "%d", pxl.blue);
-  ret += ilen(pxl.blue);
+  ret += 4-ilen(pxl->red);
+  sprintf(ret, "%d", pxl->red);
+  ret += ilen(pxl->red);
+  ret += 4-ilen(pxl->green);
+  sprintf(ret, "%d", pxl->green);
+  ret += ilen(pxl->green);
+  ret += 4-ilen(pxl->blue);
+  sprintf(ret, "%d", pxl->blue);
+  ret += ilen(pxl->blue);
   return ret;
 }
 
