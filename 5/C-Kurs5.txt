@@ -1,0 +1,36 @@
+Makefiles:
+  -(POSIX)
+  ->Gnu Make
+  -C Make (für Windows)
+  Bsp:
+    CC = gcc //Compiler
+    CFLAGS = -std=c99 -Wall -Wextra -Werror -pedantic //Parameter für Compiler
+    main: main.c //Prerequisite
+      $(CC) $(CFLAGS) $^ -o $@ //$^ = Alle Prerequisites, $@ = Name des Targets, $+ = ähnlich ^ aber Mehrfachnennung möglich und Reihenfolge bleibt
+
+
+    CFLAGS = -std=c99 -Wall -Wextra -Werror -pedantic //Parameter für Compiler
+    LDLIBS = -lm //Link with libm.a (maths)
+    CPPFLAGS = -MMD -MF $*.d //generate dependencie file
+    all: main //default
+    -include *.d //include dependency file, ignore if not exists
+    main: test.o //additional objekt used for main ie. = main.o + test.o
+    %.o: %.d
+    clean:
+      @$(RM) -v main *.o *.d //silent output, -v: list removed files
+    .PHONY: all clean
+    .PRECIOUS: *.o *.d //Don't delete intermedita *.o files
+
+
+    CFLAGS = -std=c99 -Wall -Wextra -Werror -pedantic
+    CPPFLAGS = -MMD -MF $*.d
+    all: main
+    include mod1/Makefile
+    main: $(OBJS) //build main from all OBJS
+    %.d: ;
+    clean:
+      @$(RM) -v $(OBJS) $(OBJS:.o=.d) main
+    .PHONY: all clean
+    .PRECIOUS: *.d *.o
+
+  gcc -MM main.c  -z.B:->  main.o: main.c test.h
