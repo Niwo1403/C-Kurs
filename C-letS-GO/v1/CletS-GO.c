@@ -4,6 +4,15 @@
 
 void show_anim();
 
+struct  map
+{
+	int hoehe, breite;
+	int spawnAx, spawnAy;
+	int spawnBx, spawnBy;
+	char *ptr;
+};
+
+
 int main() {
 	show_anim();
 	sleep(1);
