@@ -1,7 +1,51 @@
-Teilnehmer:
-	Nicolai
-	Felix K.
-	Emil
-	Joel
-	Philipp
-	Felix
+Teilnehmer
+	- Joel
+	- Felix K.
+	- Emil
+	- Nicolai
+	- Philipp
+	- Zedrik
+	- Felix
+
+Name:
+	C-letS GO
+
+Game-Logic
+	- Terminal-Game
+	- local multiplayer
+		- Input:  w,a,s,d + Space 	&	Pfeiltasten + Enter
+
+	- Menü-Screen: Logo und Auswahlmöglichkeiten (zB new Game, Options)
+		- [Fake Ladebildschirm]
+
+	- bei new Game: Szenenwechsel 
+			--> "Spiel-Welt" laden
+				--> Default-Map
+			- [externe Einbindung anderer Spielwelten]
+			
+
+	- "Objekte":	- Map
+			- Spieler
+			- Bomben
+			- solid block (Wand)
+			- empty block (Laufweg)
+			- destructible block (geht bei Bombe kaput)
+			- [Items]
+			- [Löcher]
+
+	- Regeln:	- 1 Stock/Leben
+			- Rundenbasiert [alles wird neu geladen, außer Counter für Punktzahl]
+			- Man kann nur ein Block laufen
+			- Bombe haben n Sekunden delay
+			- Spieler können ineinander laufen
+			- man kann durch eigene Bombe sterben
+			- nutzen termbox
+	
+	- Bild:
+		Unterebene ist Map und Drawer setzt die einzelen Pixel
+		Darüberliegende Ebene ist dann Ebene für Spieler
+		--> termbox (= spricht einzelne Pixel an)
+
+	- Struktur
+		- 		
+					 
