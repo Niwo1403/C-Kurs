@@ -44,6 +44,7 @@ struct map
 static struct map *map_ptr;
 
 // FUNKTIONEN
+int startmenu(void);
 void move(key *figur, uint16_t direction);
 void show_anim();
 void read_map(struct map *, char *);
@@ -51,13 +52,20 @@ uint16_t hex_to_int(char);
 
 
 
+
 // MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
 int main(void){
 
 
-	// // Animation
+	// Animation
 	// show_anim();
 	// sleep(1);
+
+	int start = startmenu();
+	if (start == 3){
+		show_anim();
+		return(0);
+	}
 
 	// Map erstelle
 	map_ptr = malloc(sizeof (struct map));
@@ -169,6 +177,45 @@ int main(void){
 
 
 // FUNKTIONEN-INITIALISIERUNG
+int startmenu(void){
+	//Optionen im Startmenü:
+
+	//Local Multiplayer
+		//2 players
+		//3 players
+		//4 players
+	//Online Multiplayer
+		//Host Game
+		//Join Game
+
+	printf("Welcome!\n");
+	printf("\t- press [1] to play local multiplayer\n");
+    printf("\t- press [2] to play online multiplayer\n"); 
+    printf("\t- press [3] to quit the game\n");
+	printf("> ");
+	// int menubufferlength = 5;
+	// char menubuffer[10];
+	// fgets(menubuffer, menubufferlength, stdin);
+
+	while(1){
+		char c = getchar();
+		switch(c){
+			case '1':
+				printf("local multiplayer\n");
+				return 1;
+			case '2':
+				printf("online multiplayer\n");
+				return 2;
+			case '3':
+				return 3;
+			default:
+				break;
+			}
+	}
+	return(0);
+}
+
+
 void move(key *figur, uint16_t direction){
 	tb_change_cell(figur->x, figur->y, ' ', 0,0);		// "Pixel" wo Figur war, ist nun leer
 
@@ -307,66 +354,38 @@ void read_map(struct map *ptr, char *str){
 	fclose(file);
 }
 
-
-
-int startmenu(void){
-	//Optionen im Startmenü:
-
-	//Local Multiplayer
-		//2 players
-		//3 players
-		//4 players
-	//Online Multiplayer
-		//Host Game
-		//Join Game
-
-	printf("Welcome!\n");
-	printf("\tpress 1 to play local multiplayer\n");
-    printf("\tpress 2 to play online multiplayer\n"); 
-    printf("\tpress 3 to quit the game\n");
-	int menubufferlength = 5;
-	char menubuffer[10];
-	fgets(menubuffer, menubufferlength, stdin);
-	int option = atoi(menubuffer);
-	if(option == 0){
-		printf("Keine gültige Eingabe\n");
-		return(1);
-	}
-	else{
-		switch (option)
-		{
-			case 1:
-                printf("local multiplayer\n");
-				//Funktion für lokalen Multiplayer
-				break;
-
-			case 2:
-                printf("online multiplayer\n");
-				//Funktion für online Multiplayer
-				break;
-
-			case 3:
-				return(0);
-				break;
-
-			default:
-				printf("Keine gültige Eingabe\n ");
-				return(1);
-				break;
-		}
-	}
-	return(0);
-}
-
-
-
 //fertige Funktionen:
 
 void show_anim() {
 	system("clear");
-	puts("+-----------------------------------------------------------------+\n|   #######         ##                       ##        #######    |\n| ###    ###        ##          #####        ##       #########   |\n| ##                ##       ####    ###   ######      ###        |\n| ##          ####  ##      ##      ###      ##         ####      |\n| ##                ##      ########         ##           ####    |\n| ###    ###        ####    ##       ##      ##        ########   |\n|   #######         #####    #########       ###      ########    |\n|=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=|");
+	puts(
+"+-----------------------------------------------------------------+\n\
+|   #######         ##                       ##        #######    |\n\
+| ###    ###        ##          #####        ##       #########   |\n\
+| ##                ##       ####    ###   ######      ###        |\n\
+| ##          ####  ##      ##      ###      ##         ####      |\n\
+| ##                ##      ########         ##           ####    |\n\
+| ###    ###        ####    ##       ##      ##        ########   |\n\
+|   #######         #####    #########       ###      ########    |\n\
+|=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=|");
 	usleep(500000);
-	const char ptr[17][68] = { "|       #################                   ###########           |", "|   #######################            #####################      |", "|  #########################         #########################    |", "| #########          ########       #######             ########  |", "| ######              #######      ######                 ######  |", "| ######                           ######                 ######  |", "| ######                           ######                 ######  |", "| ######                           ######                 ######  |", "| ######                           ######                 ######  |", "| ######                           ######                 ######  |", "| ######               #######     ######                 ######  |", "| #######             ########     ######                 ######  |", "| ########            ########      #######            ########   |", "|  ####################### ###       #########################    |", "|   ###################### ###         #####################      |", "|      #################                    ###########           |", "+-----------------------------------------------------------------+"};
+	const char ptr[17][68] = { "|       #################                   ###########           |",
+	 "|   #######################            #####################      |",
+	 "|  #########################         #########################    |",
+	 "| #########          ########       #######             ########  |", 
+	 "| ######              #######      ######                 ######  |",
+	 "| ######                           ######                 ######  |", 
+	 "| ######                           ######                 ######  |", 
+	 "| ######                           ######                 ######  |", 
+	 "| ######                           ######                 ######  |", 
+	 "| ######                           ######                 ######  |", 
+	 "| ######               #######     ######                 ######  |", 
+	 "| #######             ########     ######                 ######  |",
+	 "| ########            ########      #######            ########   |",
+	 "|  ####################### ###       #########################    |",
+	 "|   ###################### ###         #####################      |",
+	 "|      #################                    ###########           |",
+	 "+-----------------------------------------------------------------+"};
 	for (int i = 0; i < 17; i++) {
 		puts(ptr[i]);
 		usleep(100000);
