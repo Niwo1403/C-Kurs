@@ -51,7 +51,7 @@ uint16_t hex_to_int(char);
 
 // MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
 int main(void){
-	
+
 	struct map *map_ptr = malloc(sizeof (struct map));
 	read_map(map_ptr, "./Maps/Map1.txt");
 
