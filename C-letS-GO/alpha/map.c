@@ -9,8 +9,6 @@
 */
 
 
-
-
 #include <stdio.h>
 #include <string.h>
 #include "termbox.h"
@@ -44,9 +42,12 @@ struct map
 static struct map *map_ptr;
 
 // FUNKTIONEN
-int startmenu(void);
-void move(key *figur, uint16_t direction);
 void show_anim();
+int startmenu(void);
+int createTermbox();
+
+
+void move(key *figur, uint16_t direction);
 void read_map(struct map *, char *);
 uint16_t hex_to_int(char);
 
@@ -56,29 +57,69 @@ uint16_t hex_to_int(char);
 // MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
 int main(void){
 
-
 	// Animation
 	// show_anim();
 	// sleep(1);
 
+	// Startmenue
 	int start = startmenu();
 	if (start == 3){
 		show_anim();
 		return(0);
 	}
 
-	// Map erstelle
+	// Map erstellen
 	map_ptr = malloc(sizeof (struct map));
 	read_map(map_ptr, "./Maps/Map1.txt");
 
+	// Hauptprogramm,
+	// res speichert den eigentlichen return-Wert
+	int res = createTermbox();
+	
+	return(res);
+}
 
-	// MAP-GESTALTUNG
-	// MAP-GESTALTUNG
-	// MAP-GESTALTUNG
-	// MAP-GESTALTUNG
-	// MAP-GESTALTUNG
 
-	// Termbox anlegen
+// FUNKTIONEN-INITIALISIERUNG
+int startmenu(void){
+	//Optionen im Startmenü:
+
+	//Local Multiplayer
+		//2 players
+		//3 players
+		//4 players
+	//Online Multiplayer
+		//Host Game
+		//Join Game
+
+	printf("Welcome!\n");
+	printf("\t- press [1] to play local multiplayer\n");
+    printf("\t- press [2] to play online multiplayer\n"); 
+    printf("\t- press [3] to quit the game\n");
+	printf("> ");
+	// int menubufferlength = 5;
+	// char menubuffer[10];
+	// fgets(menubuffer, menubufferlength, stdin);
+
+	while(1){
+		char c = getchar();
+		switch(c){
+			case '1':
+				printf("local multiplayer\n");
+				return 1;
+			case '2':
+				printf("online multiplayer\n");
+				return 2;
+			case '3':
+				return 3;
+			default:
+				break;
+			}
+	}
+	return(0);
+}
+
+int createTermbox(){
 	int code = tb_init();
 	if (code < 0) {
         fprintf(stderr, "termbox init failed, code: %d\n", code);
@@ -119,9 +160,6 @@ int main(void){
 	key figur1 = {20,15,'!'};
 	// Figur auf Termbox registrieren
 	tb_change_cell(figur1.x, figur1.y, figur1.ch, 0,0);
-
-
-
 
 	// Zeichnet neu
 	tb_present();
@@ -170,49 +208,6 @@ int main(void){
 	}
 	// schließt Termbox
 	tb_shutdown();
-
-	// wieder auf Konsole
-	return(0);
-}
-
-
-// FUNKTIONEN-INITIALISIERUNG
-int startmenu(void){
-	//Optionen im Startmenü:
-
-	//Local Multiplayer
-		//2 players
-		//3 players
-		//4 players
-	//Online Multiplayer
-		//Host Game
-		//Join Game
-
-	printf("Welcome!\n");
-	printf("\t- press [1] to play local multiplayer\n");
-    printf("\t- press [2] to play online multiplayer\n"); 
-    printf("\t- press [3] to quit the game\n");
-	printf("> ");
-	// int menubufferlength = 5;
-	// char menubuffer[10];
-	// fgets(menubuffer, menubufferlength, stdin);
-
-	while(1){
-		char c = getchar();
-		switch(c){
-			case '1':
-				printf("local multiplayer\n");
-				return 1;
-			case '2':
-				printf("online multiplayer\n");
-				return 2;
-			case '3':
-				return 3;
-			default:
-				break;
-			}
-	}
-	return(0);
 }
 
 
@@ -369,7 +364,8 @@ void show_anim() {
 |   #######         #####    #########       ###      ########    |\n\
 |=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=|");
 	usleep(500000);
-	const char ptr[17][68] = { "|       #################                   ###########           |",
+	const char ptr[17][68] = { 
+	 "|       #################                   ###########           |",
 	 "|   #######################            #####################      |",
 	 "|  #########################         #########################    |",
 	 "| #########          ########       #######             ########  |", 
