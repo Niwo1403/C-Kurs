@@ -40,6 +40,8 @@ struct map
 	char *ptr;
 };
 
+// GLOBALE VARIABLEN
+static struct map *map_ptr;
 
 // FUNKTIONEN
 void move(key *figur, uint16_t direction);
@@ -52,8 +54,15 @@ uint16_t hex_to_int(char);
 // MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
 int main(void){
 
-	struct map *map_ptr = malloc(sizeof (struct map));
+
+	// // Animation
+	// show_anim();
+	// sleep(1);
+
+	// Map erstelle
+	map_ptr = malloc(sizeof (struct map));
 	read_map(map_ptr, "./Maps/Map1.txt");
+
 
 	// MAP-GESTALTUNG
 	// MAP-GESTALTUNG
@@ -74,26 +83,18 @@ int main(void){
     // cleart die TB einmal - macht sie "startklar"
     tb_clear();
 
-     // Erste Zeile  - Horizontale Grenze
-    for(unsigned int i = 0; i < strlen(boundaryX); i++)
-        tb_change_cell(i, 0, boundaryX[1], 0, 0);
-
-    // 1-te und n-1-te Zeile (vertikal)
-    for(unsigned int i = 1; i < 20; i++){
-        // horizontal
-    	for(unsigned int j = 0; j < strlen(boundaryY); j++)
-        	tb_change_cell(j, i, boundaryY[j], 0, 0);
-    }
-    for(unsigned int i = 0; i < strlen(boundaryX); i++)
-        tb_change_cell(i, 20, boundaryX[1], 0, 0);
+	// Map wird gezeichnet
+	for(int i = 0; i < map_ptr->hoehe; i++)			// y-Koordinate
+		for(int j = 0; j < map_ptr->breite; j++){		// x-Koordinate
+			tb_change_cell(j, i, *(map_ptr->ptr), map_ptr->vg, map_ptr->hg);
+			(map_ptr->ptr)++;						// position Pointer erhoehen
+	}
 
 
-    //  Zeichnet die Termbox auf Terminal neu
-    //	--> zeichnet alle neuen Änderungen
     tb_present();
 
     // wartet kurz
-	sleep(5);
+	sleep(2);
 	// neue Manipulation
 	tb_change_cell(10, 10, '(',0,0);
 	tb_change_cell(11, 10, ' ',0,0);
@@ -116,15 +117,13 @@ int main(void){
 
 	// Zeichnet neu
 	tb_present();
-	sleep(3);
+	sleep(1);
 
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
-
-
 
 	while(1){
 		// Ein Event anlegen
