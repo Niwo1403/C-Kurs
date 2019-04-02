@@ -1,5 +1,5 @@
 # Path to termbox, must be set like this on andorra
-TERMBOX ?= $(HOME)/Documents/termbox/termbox/DESTDIR/usr
+TERMBOX ?= $(HOME)/termbox/DESTDIR/usr
 # Many more warnings, not all "good"
 WARNINGS=-Wall \
          -Wextra \
@@ -14,7 +14,7 @@ WARNINGS=-Wall \
          -Wunsafe-loop-optimizations \
          -Wbad-function-cast \
          -Wcast-align \
-         -Wwrite-strings \
+        # -Wwrite-strsings \
          -Wconversion \
          -Wlogical-op \
          -Wredundant-decls \
@@ -22,9 +22,9 @@ WARNINGS=-Wall \
          -Wstrict-prototypes \
          -Wmissing-prototypes \
          -Wstrict-aliasing \
-         -Wold-style-definition \
-         -Wnull-dereference \
-         -Wduplicated-cond
+         -Wold-style-definition
+        # -Wnull-dereference \
+        # -Wduplicated-cond
 
 # C11, don't use builtin functions
 CFLAGS=-std=c11 -fno-builtin
@@ -57,7 +57,7 @@ obj-y += map.o
 #include mod1/objs.mk
 
 # Build program from object list
-tb: $(obj-y)
+map: $(obj-y)
 
 # Manual GNU-style pattern-rule, equivalent to .c.o suffix rule
 %: %.o
