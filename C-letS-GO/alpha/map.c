@@ -28,26 +28,32 @@ typedef struct key{
 
 // Schablone fuer die Grenzen der Maps
 const char boundaryX[] = "##########################################################################";
-const char boundaryY[] = "#                                                                        #";
+const char boundaryY[] = "#                                                 	                       #";
 
 //map mit Infos...
-/*struct  map
+struct map
 {
 	int hoehe, breite;
+	uint16_t vg, hg;
 	int spawnAx, spawnAy;
 	int spawnBx, spawnBy;
 	char *ptr;
-};*/
+};
 
 
 // FUNKTIONEN
 void move(key *figur, uint16_t direction);
 void show_anim();
+void read_map(struct map *, char *);
+uint16_t hex_to_int(char);
 
 
 
 // MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
 int main(void){
+	
+	struct map *map_ptr = malloc(sizeof (struct map));
+	read_map(map_ptr, "./Maps/Map1.txt");
 
 	// MAP-GESTALTUNG
 	// MAP-GESTALTUNG
@@ -195,6 +201,112 @@ void move(key *figur, uint16_t direction){
 	return;
 }
 
+uint16_t hex_to_int(char c){
+	uint16_t ret = 0;
+	if (c >= '0' && c <= '9'){
+		ret = (uint16_t) c - '0';
+	}else if(c >= 'a' && c <= 'f'){
+		ret = c - 'a' + 10;
+	}else if(c >= 'A' && c <= 'F'){
+		ret = c - 'A' + 10;
+	}
+	return ret;
+}
+
+void read_map(struct map *ptr, char *str){
+	FILE *file = fopen(str, "r");
+	char c = getc(file);
+	//Höhe:
+	ptr->hoehe = 0;
+	while (c != ','){
+		ptr->hoehe *= 10;
+		ptr->hoehe += c-'0';
+		c = getc(file);
+	}
+	c = getc(file);//für ' '
+
+	//Breite:
+	c = getc(file);//erste Zahl
+	ptr->breite = 0;
+	while (c != ','){
+		ptr->breite *= 10;
+		ptr->breite += c-'0';
+		c = getc(file);
+	}
+	c = getc(file);//für ' '
+
+	//Hintergrund:
+	c = getc(file);//erste Zahl
+	ptr->hg = 0;
+	while (c != ','){
+		ptr->hg *= 16;
+		ptr->hg += hex_to_int(c);
+		c = getc(file);
+	}
+	c = getc(file);//für ' '
+
+	//Vordergrund
+	c = getc(file);//erste Zahl
+	ptr->vg = 0;
+	while (c != '\n'){
+		ptr->vg *= 16;
+		ptr->vg += hex_to_int(c);
+		c = getc(file);
+	}
+
+	//Spawns von A:
+	c = getc(file);//erste Zahl
+	ptr->spawnAx = 0;
+	while (c != ','){
+		ptr->spawnAx *= 10;
+		ptr->spawnAx += c-'0';
+		c = getc(file);
+	}
+	c = getc(file);//für ' '
+	c = getc(file);//erste Zahl von y koord.
+	ptr->spawnAy = 0;
+	while (c != ','){
+		ptr->spawnAy *= 10;
+		ptr->spawnAy += c-'0';
+		c = getc(file);
+	}
+	c = getc(file);//für ' '
+
+	//Spawns von B:
+	c = getc(file);//erste Zahl
+	ptr->spawnBx = 0;
+	while (c != ','){
+		ptr->spawnBx *= 10;
+		ptr->spawnBx += c-'0';
+		c = getc(file);
+	}
+	c = getc(file);//für ' '
+	c = getc(file);//erste Zahl von y koord.
+	ptr->spawnBy = 0;
+	while (c != '\n'){
+		ptr->spawnBy *= 10;
+		ptr->spawnBy += c-'0';
+		c = getc(file);
+	}
+
+	//Char Array b hier:
+	int elm = ptr->hoehe * ptr->breite;
+	ptr->ptr = malloc(elm);
+	for (int i = 0; i < ptr->hoehe; i++){
+		c = getc(file);
+		for (int j = 0; j < ptr->breite; j++){
+			*(ptr->ptr) = c;
+			(ptr->ptr)++;
+			c = getc(file);
+		}
+		while (c != '\n'){
+			c = getc(file);
+		}
+	}
+	(ptr->ptr) -= elm;
+
+	fclose(file);
+}
 
 
 
@@ -214,3 +326,12 @@ void show_anim() {
 	puts("\n");
 }
 
+/*
+   __
+  /  \
+  \__/
+   ___
+  /   \
+ |     |
+  \___/
+*/

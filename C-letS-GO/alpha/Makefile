@@ -27,7 +27,7 @@ WARNINGS=-Wall \
         # -Wduplicated-cond
 
 # C11, don't use builtin functions
-CFLAGS=-std=c11 -fno-builtin
+CFLAGS=-std=gnu99 -fno-builtin
 # Generate dependency files
 # Add termbox path to include dir
 CPPFLAGS=$(WARNINGS) -isystem$(TERMBOX)/include -MMD -MF $*.d
