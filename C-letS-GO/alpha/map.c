@@ -39,24 +39,21 @@ int createTermbox();
 void move(key *figur, uint16_t direction);
 void read_map(struct map *, char *);
 uint16_t hex_to_int(char);
-
+char getc_arr(int, int);
 
 
 
 // MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
 int main(void){
-
 	// Animation
 	// show_anim();
 	// sleep(1);
-
 	// Startmenue
 	int start = startmenu();
 	if (start == 3){
 		show_anim();
 		return(0);
 	}
-
 	// Map erstellen
 	map_ptr = malloc(sizeof (struct map));
 	read_map(map_ptr, "./Maps/Map1.txt");
@@ -68,6 +65,16 @@ int main(void){
 	return(res);
 }
 
+
+//returns the char at (x, y)
+char getc_arr(int x, int y){
+	int zs = x * (map_ptr->breite) + y;
+	(map_ptr->ptr) += zs;
+	char c = *(map_ptr->ptr);
+	(map_ptr->ptr) -= zs;
+
+	return c;
+}
 
 // FUNKTIONEN-INITIALISIERUNG
 int startmenu(void){
