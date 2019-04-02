@@ -66,8 +66,8 @@ int main(void){
     // 1-te und n-1-te Zeile (vertikal)
     for(unsigned int i = 1; i < 20; i++){
         // horizontal
-        for(unsigned int j = 0; j < strlen(boundaryY); j++)
-            tb_change_cell(j, i, boundaryY[j], 0, 0);
+    	for(unsigned int j = 0; j < strlen(boundaryY); j++)
+        	tb_change_cell(j, i, boundaryY[j], 0, 0);
     }
     for(unsigned int i = 0; i < strlen(boundaryX); i++)
         tb_change_cell(i, 20, boundaryX[1], 0, 0);
