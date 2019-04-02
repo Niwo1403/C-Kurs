@@ -7,15 +7,11 @@
 	tb_poll_event()
 		--> Wartet auf ein Event (Mouseclick, Keyboard)
 */
-
-
 #include <stdio.h>
 #include <string.h>
 #include "termbox.h"
 #include <unistd.h>
 #include <stdlib.h>
-
-
 
 // ein 'Pixel'
 typedef struct key{
@@ -23,10 +19,6 @@ typedef struct key{
 	int y;
 	unsigned char ch;
 }key;	
-
-// Schablone fuer die Grenzen der Maps
-const char boundaryX[] = "##########################################################################";
-const char boundaryY[] = "#                                                 	                       #";
 
 //map mit Infos...
 struct map
@@ -37,7 +29,6 @@ struct map
 	int spawnBx, spawnBy;
 	char *ptr;
 };
-
 // GLOBALE VARIABLEN
 static struct map *map_ptr;
 
@@ -45,8 +36,6 @@ static struct map *map_ptr;
 void show_anim();
 int startmenu(void);
 int createTermbox();
-
-
 void move(key *figur, uint16_t direction);
 void read_map(struct map *, char *);
 uint16_t hex_to_int(char);
@@ -209,7 +198,6 @@ int createTermbox(){
 	// schließt Termbox
 	tb_shutdown();
 }
-
 
 void move(key *figur, uint16_t direction){
 	tb_change_cell(figur->x, figur->y, ' ', 0,0);		// "Pixel" wo Figur war, ist nun leer
@@ -388,13 +376,3 @@ void show_anim() {
 	}
 	puts("\n");
 }
-
-/*
-   __
-  /  \
-  \__/
-   ___
-  /   \
- |     |
-  \___/
-*/
