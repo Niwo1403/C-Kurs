@@ -123,6 +123,12 @@ int main(void){
 		}
 		// Falls Bewegung
 		switch(t){
+
+			case 'w':
+				tb_shutdown();
+				return(0);
+				break;
+
 			// Falls  Tastatur-Eingabe
 			case TB_EVENT_KEY :
 				// Falls ESC: ABBRUCH
