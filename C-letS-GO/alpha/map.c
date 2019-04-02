@@ -331,7 +331,7 @@ int startmenu(void){
 	int option = atoi(menubuffer);
 	if(option == 0){
 		printf("Keine gültige Eingabe\n");
-		startmenu();
+		return(1);
 	}
 	else{
 		switch (option)
@@ -352,7 +352,7 @@ int startmenu(void){
 
 			default:
 				printf("Keine gültige Eingabe\n ");
-				startmenu();
+				return(1);
 				break;
 		}
 	}
