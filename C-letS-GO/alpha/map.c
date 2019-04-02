@@ -164,7 +164,7 @@ int main(void){
 	// schließt Termbox
 	tb_shutdown();
 
-	// wieder auf Konsolo
+	// wieder auf Konsole
 	return(0);
 }
 
@@ -309,6 +309,55 @@ void read_map(struct map *ptr, char *str){
 }
 
 
+
+int startmenu(void){
+	//Optionen im Startmenü:
+
+	//Local Multiplayer
+		//2 players
+		//3 players
+		//4 players
+	//Online Multiplayer
+		//Host Game
+		//Join Game
+
+	printf("Welcome!\n");
+	printf("\tpress 1 to play local multiplayer\n");
+    printf("\tpress 2 to play online multiplayer\n"); 
+    printf("\tpress 3 to quit the game\n");
+	int menubufferlength = 5;
+	char menubuffer[10];
+	fgets(menubuffer, menubufferlength, stdin);
+	int option = atoi(menubuffer);
+	if(option == 0){
+		printf("Keine gültige Eingabe\n");
+		return(1);
+	}
+	else{
+		switch (option)
+		{
+			case 1:
+                printf("local multiplayer\n");
+				//Funktion für lokalen Multiplayer
+				break;
+
+			case 2:
+                printf("online multiplayer\n");
+				//Funktion für online Multiplayer
+				break;
+
+			case 3:
+				return(0);
+				break;
+
+			default:
+				printf("Keine gültige Eingabe\n ");
+				return(1);
+				break;
+		}
+	}
+	return(0);
+}
 
 
 
