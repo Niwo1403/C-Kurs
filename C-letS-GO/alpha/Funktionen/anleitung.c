@@ -1,3 +1,4 @@
+int anleitung(void){
 		printf("How to play:\n");
 		printf("\t- player 1 moves with [W], [A], [S], [D] and places bombs with [Enter]\n");
 		printf("\t- player 2 moves with [ARROW_UP], [ARROW_LEFT], [ARROW_DOWN], [ARROW_RIGHT] and places bombs with [Space]\n");        
@@ -9,3 +10,4 @@
 		printf("\t- Bombs can't destroy the solid blocks (#)\n");
 //        printf("Bombs can destroy the destructible blocks (x)\n");
         printf("\t- Do not walk into the explosions!\n");
+}
