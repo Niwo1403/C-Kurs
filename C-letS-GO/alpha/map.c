@@ -32,6 +32,8 @@ struct map
 // GLOBALE VARIABLEN
 static struct map *map_ptr;
 
+enum Direction {STAND, UP, DOWN, LEFT, RIGHT};
+
 // FUNKTIONEN
 void show_anim();
 int startmenu(void);
@@ -41,6 +43,7 @@ void read_map(struct map *, char *);
 uint16_t hex_to_int(char);
 char getc_arr(int, int);
 void show_endanim();
+int check(enum Directon, int, int);
 
 
 // MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
@@ -91,6 +94,30 @@ char getc_arr(int x, int y){
 	(map_ptr->ptr) -= zs;
 
 	return c;
+}
+
+int check(enum Directon direct, int x int y){
+    switch (direct){
+        case UP:
+            y++;
+            break;
+        case DOWN:
+            y--;
+            break;
+        case LEFT:
+            x--;
+            break;
+        case RIGHT:
+            x++;
+            break;
+        default:
+            break;
+    }
+    char c = getc_arr(x, y);
+    if (c == '+' || c == '-' || c == '|'){//Disjunktion von allen nicht durchlässigen Blöcken
+        return 1;
+    }
+    return 0;
 }
 
 // FUNKTIONEN-INITIALISIERUNG
