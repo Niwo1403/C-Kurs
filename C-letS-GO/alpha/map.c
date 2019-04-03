@@ -55,7 +55,7 @@ uint16_t hex_to_int(char);
 char getc_arr(int, int);
 void show_endanim();
 int check(enum Direction, int, int);
-void *tick();
+void *tick(void *);
 
 int main(void){
 	system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen
@@ -91,7 +91,8 @@ int main(void){
 
 	//Thread (Ticks) erstellen
 	pthread_t *timerThread = malloc(sizeof(pthread_t));
-	int res = pthread_create(timerThread, NULL, &tick, NULL);
+	int res;
+	res = pthread_create(timerThread, NULL, &tick, NULL);
 	if(res != 0){
 		printf("Thread Fehler");
 		return -1;
@@ -106,12 +107,12 @@ int main(void){
 }
 
 
-void *tick(){
+void *tick(void *inp){
 	while (zustand != 4){
 		//do something
 		usleep(1000*10);
 	}
-	return NULL;
+	return inp;
 }
 
 //returns the char at (x, y)

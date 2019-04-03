@@ -32,7 +32,7 @@ CFLAGS=-std=gnu99 -fno-builtin
 # Add termbox path to include dir
 CPPFLAGS=$(WARNINGS) -isystem$(TERMBOX)/include -MMD -MF $*.d
 # Link with termbox
-LDLIBS=-ltermbox
+LDLIBS=-ltermbox -pthread
 # Add termbox path to library dir
 # Also add termbox path to dynamic linking search path
 LDFLAGS=-L$(TERMBOX)/lib -Wl,-rpath,$(TERMBOX)/lib
