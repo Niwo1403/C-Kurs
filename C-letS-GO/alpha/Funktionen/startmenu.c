@@ -1,10 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <dirent.h>
+#include <sys/types.h>
 
 int startmenu(void);
+int mapmenu(void);
 
 int main (void){
-    startmenu();
+    mapmenu();
     return(0);
 }
 
@@ -48,4 +51,26 @@ int startmenu(void){
 			}
 	}
 	return(0);
+}
+
+int mapmenu(void){ 
+
+	struct map
+	{
+		int id;
+		char *name;
+		int lenght;
+		struct map *next;
+	};
+	
+
+	DIR *dir;
+	struct dirent *dirptr;
+	if((dir=opendir("./Maps")) != NULL){
+		while((dirptr = readdir(dir)) != NULL){
+			if ((*dirptr).d_name[0] != '.'){
+				printf("%s\n", (*dirptr).d_name);
+			}
+		}
+	}
 }
