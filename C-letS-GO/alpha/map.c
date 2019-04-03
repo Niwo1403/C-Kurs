@@ -49,12 +49,12 @@ enum Direction {STAND, UP, DOWN, LEFT, RIGHT};
 void show_anim();
 int startmenu(void);
 int createTermbox();
-void move(player *figur, uint16_t direction);
+int move(uint16_t button, player *p);
 void read_map(struct map *, char *);
 uint16_t hex_to_int(char);
 char getc_arr(int, int);
 void show_endanim();
-int check(enum Direction, int, int);
+int check(int, player *);
 void *tick(void *);
 
 int main(void){
@@ -124,28 +124,68 @@ char getc_arr(int x, int y){
 
 	return c;
 }
+int move(uint16_t button, player *p){
+		// Invalide Taste?
+		if(button > TB_KEY_ARROW_UP || TB_KEY_ARROW_RIGHT > button)
+			return(1);
 
-int check(enum Direction direct, int x, int y){
+		// haben safe Pfeiltasten
+
+		// kann man sich bewegen?
+		int check_res = check(button, p);
+		return(check_res);
+}
+
+int check(int direct, player *p){
+	char c;
     switch (direct){
-        case UP:
-            y++;
+        case TB_KEY_ARROW_UP:
+        	// border?
+            c = getc_arr(p->x, (p->y) -1 );
+    		if (c == '+' || c == '-' || c == '|')
+    			return 1;
+    		// alles gut
+          	(p->y)--;
             break;
-        case DOWN:
-            y--;
+        case TB_KEY_ARROW_DOWN:
+            // border?
+            c = getc_arr(p->x, p->y +1 );
+    		if (c == '+' || c == '-' || c == '|')
+    			return 1;
+
+    		// alles gut
+            (p->y)++;
             break;
-        case LEFT:
-            x--;
+        case TB_KEY_ARROW_LEFT:
+            // border?
+            c = getc_arr(p->x -1 , p->y);
+    		if (c == '+' || c == '-' || c == '|')
+    			return 1;
+
+    		// alles gut
+            (p->x)--;
             break;
-        case RIGHT:
-            x++;
+        case TB_KEY_ARROW_RIGHT:
+            // border?
+            c = getc_arr(p->x +1, p->y);
+    		if (c == '+' || c == '-' || c == '|')
+    			return 1;
+
+    		// alles gut
+            (p->x)++;
             break;
         default:
+        	return 1;
             break;
     }
-    char c = getc_arr(x, y);
-    if (c == '+' || c == '-' || c == '|'){//Disjunktion von allen nicht durchlässigen Blöcken
-        return 1;
-    }
+    // stoßt man gegen Wand?
+    // char c = getc_arr(p->x, p->y);
+    // if (c == '+' || c == '-' || c == '|'){//Disjunktion von allen nicht durchlässigen Blöcken
+    //    	p->x = old_x;
+    //    	p->y = old_y;
+    //     tb_change_cell(10, 10, '#', 0,100);
+    //     return 1;
+    // }
     return 0;
 }
 
@@ -231,12 +271,13 @@ int createTermbox(){
 
 	// Eine Figur anlegen
 	player *player1 = malloc(sizeof(player));
-	player1->x = 10;
-	player1->y = 10;
+	player1->x = map_ptr->spawnAx;
+	player1->y = map_ptr->spawnAy;
 	player1->ch = '@';
 	player1->bombs = 3;
 	player1->isDead = 0;
 	player1->isActive = 0;
+
 	// Figur auf Termbox registrieren
 	tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg,map_ptr->hg);
 
@@ -250,75 +291,55 @@ int createTermbox(){
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
 
+
+		// NEU NEU NEU NEU EVENT EVENT EVENT EVENT 
 	while(1){
-		// Ein Event anlegen
-		struct tb_event ev;
-		int t = tb_poll_event(&ev);		// Wartet solange, bis irgendeine Eingabe gemacht wird (Tastatur, Maus)
+		struct tb_event event;
+		int tb_input = tb_poll_event(&event);		// welche Art von Input (Maus, Tastatur)
 
-		// Falls Fehler beim Erstellen eines Events, beende
-		if(t == -1){
-			fprintf(stderr, "Event-Fehler");
-			return (-1);
+		// Falls Fehler
+		if(tb_input == -1){
+			fprintf(stderr, "Event-Error!");
+			return(1);
 		}
-		// Falls Bewegung
-		switch(t){
-
-			case 'w':
-				tb_shutdown();
-				return(0);
-				break;
-
-			// Falls  Tastatur-Eingabe
+		// Was für ein Event?
+		switch(tb_input){
+			// Tastatureingabe
 			case TB_EVENT_KEY :
-				// Falls ESC: ABBRUCH
-				if(ev.key == TB_KEY_ESC){
+				// ESC = Ende
+				if(event.key == TB_KEY_ESC){
 					tb_shutdown();
 					return(0);
 				}
-
-				// sonst: Bewegung
-				move(player1, ev.key);
-				break;
-
-			// Sonst passiert nix
-			default:
-				break;
+				// eine andere Taste wurde gedrueckt
+				int oldX = player1->x;
+				int oldY = player1->y;
+				// move() checks if pressed KEY is valid (= player moves) 
+				// 			|
+				//			+--> with parameter tb_input
+				//
+				// if not(move_res = 1), termbox will do nothing
+				// if yes(move_res = 0), termbox will print changed array_slots (oldX, oldY, newX, newY)
+				int move_res = move(event.key, player1);											// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
+					// Keine Bewegung, weil ungueltige Taste oder Wand
+					if(move_res == 1){
+						tb_change_cell(10,10,'#',100,100);						 
+						// do nothting
+					}
+					else{
+						int newX = player1->x;
+						int newY = player1->y;
+						tb_change_cell(oldX, oldY, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
+						tb_change_cell(newX, newY, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+						tb_present();														// TB neu printen
+					}
+			default :
+				;
 		}
 	}
-	// schließt Termbox
 	tb_shutdown();
 }
 
-void move(player *figur, uint16_t direction){
-	tb_change_cell(figur->x, figur->y, ' ', 0,0);		// "Pixel" wo Figur war, ist nun leer
-
-	// Position der Figur ändern oder Bombe planten
-	switch(direction){
-		case TB_KEY_ARROW_UP :
-				figur->y = figur->y - 1;
-				break;
-		case TB_KEY_ARROW_DOWN :
-				figur->y = figur->y + 1;
-				break;
-		case TB_KEY_ARROW_RIGHT :
-				figur->x = figur->x + 1;
-				break;
-		case TB_KEY_ARROW_LEFT :
-				figur->x = figur->x - 1;
-				break;
-
-		// Strg+Enter 		-		Bomben planten
-		case TB_KEY_ENTER:
-				tb_change_cell(figur->x -1, figur->y, 'x', 0,0);
-				break;
-
-		default:
-				break;
-	}
-	tb_change_cell(figur->x, figur->y,figur->ch, 0,0);	// neuen Pixel setzen
-	tb_present();
-	return;
-}
 
 uint16_t hex_to_int(char c){
 	uint16_t ret = 0;
