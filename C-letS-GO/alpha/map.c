@@ -423,7 +423,7 @@ void read_map(struct map *ptr, char *str){
 	fclose(file);
 }
 
-//fertige Funktionen:
+//Animationen:
 
 void show_anim() {
 	system("clear");
