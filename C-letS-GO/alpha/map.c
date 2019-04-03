@@ -59,10 +59,6 @@ void show_endanim();
 int check(enum Direction, int, int);
 void tick();
 
-//git config credential.helper store
-//git push https://github.com/Niwo1493/C-Kurs.git
-
-// MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
 int main(void){
 	// Animation
 	show_anim();
