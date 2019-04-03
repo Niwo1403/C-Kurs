@@ -49,10 +49,28 @@ int main(void){
 	show_anim();
 	// Startmenue
 	int start = startmenu();
+
+	if (start == 1){
+		//Funktion, um Spiel zu starten
+	}
+
+	if (start == 2){
+		//Funktion, um online Multiplayer zu starten
+	}
+
 	if (start == 3){
-		show_endanim();
+		printf("How to play\n");
+		printf("\t- player 1 moves with [W], [A], [S], [D] and places bombs with [Enter]\n");
+		printf("\t- player 2 moves with [ARROW_UP], [ARROW_LEFT], [ARROW-DOWN], [ARROW_RIGHT] and places bombs with [Space]\n");
+		printf(" \n");
+		printf("Bombs can't destroy the solid blocks (#)\n");
+	}
+
+	if (start == 4){
+		show_anim();
 		return(0);
 	}
+
 	// Map erstellen
 	map_ptr = malloc(sizeof (struct map));
 	read_map(map_ptr, "./Maps/Map1.txt");
@@ -90,7 +108,8 @@ int startmenu(void){
 	printf("Welcome!\n");
 	printf("\t- press [1] to play local multiplayer\n");
     printf("\t- press [2] to play online multiplayer\n"); 
-    printf("\t- press [3] to quit the game\n");
+	printf("\t- press [3] to learn how to play the game\n");
+    printf("\t- press [4] to quit the game\n");
 	printf("> ");
 	// int menubufferlength = 5;
 	// char menubuffer[10];
@@ -107,6 +126,9 @@ int startmenu(void){
 				return 2;
 			case '3':
 				return 3;
+
+			case '4':
+				return 4;
 			default:
 				break;
 			}
