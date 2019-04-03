@@ -12,6 +12,7 @@
 #include "termbox.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 // STRUCTS
 //map mit Infos...
@@ -54,9 +55,10 @@ uint16_t hex_to_int(char);
 char getc_arr(int, int);
 void show_endanim();
 int check(enum Direction, int, int);
-void tick();
+void *tick();
 
 int main(void){
+	system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen
 	// Animation
 	show_anim();
 	// Startmenue
@@ -88,8 +90,8 @@ int main(void){
 	read_map(map_ptr, "./Maps/Map1.txt");
 
 	//Thread (Ticks) erstellen
-	pthread_t timerThread;
-	int res = pthread_create(&timerThread, NULL, &tick, NULL);
+	pthread_t *timerThread = malloc(sizeof(pthread_t));
+	int res = pthread_create(timerThread, NULL, &tick, NULL);
 	if(res != 0){
 		printf("Thread Fehler");
 		return -1;
@@ -97,18 +99,19 @@ int main(void){
 
 	// Hauptprogramm,
 	// res speichert den eigentlichen return-Wert
-	int res = createTermbox();
+	res = createTermbox();
 	
 	pthread_exit(timerThread);//Thread beenden
 	return(res);
 }
 
 
-void tick(){
+void *tick(){
 	while (zustand != 4){
-
+		//do something
+		usleep(1000*10);
 	}
-	return 0;
+	return NULL;
 }
 
 //returns the char at (x, y)
