@@ -32,6 +32,8 @@ struct map
 // GLOBALE VARIABLEN
 static struct map *map_ptr;
 
+enum Direction {STAND, UP, DOWN, LEFT, RIGHT};
+
 // FUNKTIONEN
 void show_anim();
 int startmenu(void);
@@ -53,7 +55,7 @@ int main(void){
 	if (start == 1){
 		//Funktion, um Spiel zu starten
 	}
-
+	
 	if (start == 2){
 		//Funktion, um online Multiplayer zu starten
 	}
