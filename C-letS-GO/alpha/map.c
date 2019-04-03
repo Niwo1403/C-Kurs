@@ -50,6 +50,31 @@ int main(void){
 	// sleep(1);
 	// Startmenue
 	int start = startmenu();
+	if (start == 1){
+		int local = localmenu();
+		switch (local)
+		{
+			case 1:
+				return(0);
+				break;
+		
+			case 2:
+				//Funktion, um mit 2 Spielern zu spielen
+				break;
+
+			case 3:
+				//Funktion, um mit 3 Spielern zu spielen
+				break;
+
+			case 4:
+				//Funktion, um mit 4 Spielern zu spielen
+				break;
+				
+			default:
+				break;
+		}
+		return(0);
+	}
 	if (start == 3){
 		show_anim();
 		return(0);
@@ -114,6 +139,41 @@ int startmenu(void){
 	}
 	return(0);
 }
+
+int localmenu(void){
+	printf("local multiplayer\n");
+	printf("\t- press [1] to quit the game\n");
+	printf("\t- press [2] to play with 2 players\n");
+	printf("\t- press [3] to play with 3 players\n");
+	printf("\t- press [4] to play with 4 players\n");
+
+	while(1){
+		char l = getchar();
+		switch (l)
+		{
+			case '1':
+				return(1);
+
+			case '2':
+				printf("2 players\n");
+				return(2);
+
+			case '3':
+				printf("3 players\n");
+				return(3);
+
+			case '4':
+				printf("4 players\n");
+				return(4);
+			default:
+				break;
+		}
+	}
+	return(0);
+}
+
+
+
 
 int createTermbox(){
 	int code = tb_init();
