@@ -70,7 +70,7 @@ int main(void){
 	}
 
 	if (start == 4){
-		show_anim();
+		show_endanim();
 		return(0);
 	}
 
