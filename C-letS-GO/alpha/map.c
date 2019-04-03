@@ -45,6 +45,7 @@ char getc_arr(int, int);
 void show_endanim();
 int check(enum Direction, int, int);
 
+//return(;);
 
 // MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
 int main(void){
