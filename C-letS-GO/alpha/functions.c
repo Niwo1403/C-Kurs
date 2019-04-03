@@ -52,7 +52,7 @@ struct player {
 	int bombs;			// Anzahl der Bomben im Inventar
 	int isDead;			// ob der Spieler noch lebt
 	int isActive;		// ob der Spieler am Spiel teilnimmt bzw. existiert
-}
+};
 
 struct bomb {
 	int x;				// Position auf der map
@@ -60,7 +60,7 @@ struct bomb {
 	int radius;			// Explosionsradius
 	int timer;			// Wie viele ticks bis zur Explosion uebrig sind
 	int isActive;		// ob die Bombe existiert
-}
+};
 
 // sollte im Menue abgefragt werden
 const int playerCount;
