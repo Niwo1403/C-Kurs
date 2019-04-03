@@ -12,10 +12,12 @@
 #include "termbox.h"
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <dirent.h>
 #include <pthread.h>
 
-// STRUCTS
-//map mit Infos...
+//STRUCTS
+//map speichert Infos zur genutzten Map
 struct map
 {
 	int hoehe, breite;
@@ -42,11 +44,11 @@ typedef struct{
 
 // GLOBALE VARIABLEN
 static struct map *map_ptr;
-int zustand = 0;
-enum Direction {STAND, UP, DOWN, LEFT, RIGHT};
+int zustand = 0, fs;
+FILE *log = NULL;
 
 // FUNKTIONEN deklarationen
-void show_anim();
+void show_anim(int);
 int startmenu(void);
 int createTermbox();
 int move(uint16_t button, player *p);
@@ -56,39 +58,18 @@ char getc_arr(int, int);
 void show_endanim();
 int check(int, player *);
 void *tick(void *);
+char *getLink();
+int init();
+int fullscreen(int, char **);
 
-int main(void){
-	system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen
-	// Animation
-	show_anim();
-	// Startmenue
-	zustand = startmenu();
-
-	if (zustand == 1){
-		//Funktion, um Spiel zu starten
+int main(int argc, char **argv){
+	fs = fullscreen(argc, argv);
+	if (fs){
+		system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
+		usleep(10000);//warten das in Vollbild gewechselt wurde
 	}
-
-	if (zustand == 2){
-		//Funktion, um online Multiplayer zu starten
-	}
-
-	if (zustand == 3){
-		printf("How to play\n");
-		printf("\t- player 1 moves with [W], [A], [S], [D] and places bombs with [Enter]\n");
-		printf("\t- player 2 moves with [ARROW_UP], [ARROW_LEFT], [ARROW-DOWN], [ARROW_RIGHT] and places bombs with [Space]\n");
-		printf(" \n");
-		printf("Bombs can't destroy the solid blocks (#)\n");
-	}
-
-	if (zustand == 4){
-		show_endanim();
-		return(0);
-	}
-
-	// Map erstellen
-	map_ptr = malloc(sizeof (struct map));
-	read_map(map_ptr, "./Maps/Map1.txt");
-
+	if (init())//fürt benötigte Code aus, der keine Rückgabewerte hat
+		return 0;
 	//Thread (Ticks) erstellen
 	pthread_t *timerThread = malloc(sizeof(pthread_t));
 	int res;
@@ -98,11 +79,13 @@ int main(void){
 		return -1;
 	}
 
-	// Hauptprogramm,
 	// res speichert den eigentlichen return-Wert
 	res = createTermbox();
-	
-	pthread_exit(timerThread);//Thread beenden
+	zustand = 4;//beendet den Loop in tick() und damit den Thread
+	show_endanim();
+	if (fs){
+		system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
+	}
 	return(res);
 }
 
@@ -115,12 +98,116 @@ void *tick(void *inp){
 	return inp;
 }
 
+
+int fullscreen(int argc, char **argv){
+	if (argc > 1){
+		argv++;
+		char *tmp = malloc(3);
+		strncpy(tmp, *argv, 2);
+		argv--;
+		tmp += 2;
+		*tmp = '\0';
+		tmp -= 2;
+		if (strcmp(tmp, "-f") == 0 || strcmp(tmp, "-v") == 0){
+			free(tmp);
+			return 1;
+		}
+		free(tmp);
+	}
+	return 0;
+}
+
+char *getLink(){
+	int id = 0;
+	struct txt{
+		int id;
+		char *name;
+		int length;
+		struct txt *next;
+	};
+	struct txt *maps = malloc(sizeof (struct txt)), *anfang;
+	anfang = maps;
+
+	system("clear");
+	show_anim(0);
+
+	DIR *dir;
+	struct dirent *dirptr;
+	if((dir=opendir("./Maps")) != NULL){
+		while((dirptr = readdir(dir)) != NULL){
+			if ((*dirptr).d_name[0] != '.'){
+				id++;
+				maps->id = id;
+				maps->length = strlen((*dirptr).d_name);
+				maps->name = malloc(maps->length+1);
+				strcpy(maps->name, (*dirptr).d_name);
+				maps->next = malloc(sizeof (struct txt));
+				maps = maps->next;
+			}
+		}
+		
+		maps = anfang;
+		printf("Welche Map soll geladen werden?\n");
+		for (int i = 0; i < id; i++){
+			char *tmp = malloc(maps->length - 3);
+			strncpy(tmp, maps->name, maps->length - 4);
+			printf("\t-[%d]%s\n", maps->id, tmp);
+			free(tmp);
+			maps = maps->next;
+		}
+		maps = anfang;
+		printf("> ");
+		char c;
+		int num = 0;
+		while (1){
+			c = getchar();
+			while (c >= '0' && c <= '9'){
+				num *= 10;
+				num += c-'0';
+				c = getchar();
+			}
+			if (id >= num && c == '\n' && num != 0){
+				num--;
+				for (; num > 0; num--){
+					maps = maps->next;
+				}
+				char *ret = malloc(7 + maps->length + 1);
+				strcpy(ret, "./Maps/");
+				strcat(ret, maps->name);
+				return ret;
+			}
+		}
+	}else{
+		return "./Maps/Map1.txt";
+	}
+}
+
+int init(){
+	system("wmctrl -r ':ACTIVE:' -N CletS-GO");//ändert Terminal Namen
+	log = fopen("/tmp/spiel.log", "w");
+	// Animation
+	show_anim(15);
+	// Startmenue
+	zustand = startmenu();
+	if (zustand == 4){
+		show_endanim();
+		if (fs){
+			system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
+		}
+		return 1;
+	}
+	// Map erstellen
+	map_ptr = malloc(sizeof (struct map));
+	read_map(map_ptr, getLink());
+	return 0;
+}
+
 //returns the char at (x, y)
 char getc_arr(int x, int y){
-	int zs = x * (map_ptr->breite) + y;
-	(map_ptr->ptr) += zs;
-	char c = *(map_ptr->ptr);
-	(map_ptr->ptr) -= zs;
+	int zs = y * (map_ptr->breite) + x;
+	char c = *(map_ptr->ptr + zs);
+	fprintf(log, "%d %d: %c (%d)\n", x, y, c, c);
+	fflush(log);
 
 	return c;
 }
@@ -142,6 +229,8 @@ int check(int direct, player *p){
         case TB_KEY_ARROW_UP:
         	// border?
             c = getc_arr(p->x, (p->y) -1 );
+            fprintf(log, "Zeichen oben %c (%d)\n", c, c);
+            fflush(log);
     		if (c == '+' || c == '-' || c == '|')
     			return 1;
     		// alles gut
@@ -150,6 +239,8 @@ int check(int direct, player *p){
         case TB_KEY_ARROW_DOWN:
             // border?
             c = getc_arr(p->x, p->y +1 );
+            fprintf(log, "Zeichen unten %c (%d)\n", c, c);
+            fflush(log);
     		if (c == '+' || c == '-' || c == '|')
     			return 1;
 
@@ -159,6 +250,8 @@ int check(int direct, player *p){
         case TB_KEY_ARROW_LEFT:
             // border?
             c = getc_arr(p->x -1 , p->y);
+            fprintf(log, "Zeichen links %c (%d)\n", c, c);
+            fflush(log);
     		if (c == '+' || c == '-' || c == '|')
     			return 1;
 
@@ -168,6 +261,8 @@ int check(int direct, player *p){
         case TB_KEY_ARROW_RIGHT:
             // border?
             c = getc_arr(p->x +1, p->y);
+            fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
+            fflush(log);
     		if (c == '+' || c == '-' || c == '|')
     			return 1;
 
@@ -178,18 +273,9 @@ int check(int direct, player *p){
         	return 1;
             break;
     }
-    // stoßt man gegen Wand?
-    // char c = getc_arr(p->x, p->y);
-    // if (c == '+' || c == '-' || c == '|'){//Disjunktion von allen nicht durchlässigen Blöcken
-    //    	p->x = old_x;
-    //    	p->y = old_y;
-    //     tb_change_cell(10, 10, '#', 0,100);
-    //     return 1;
-    // }
     return 0;
 }
 
-// FUNKTIONEN-INITIALISIERUNG
 int startmenu(void){
 	//Optionen im Startmenü:
 
@@ -207,12 +293,10 @@ int startmenu(void){
 	printf("\t- press [3] to learn how to play the game\n");
     printf("\t- press [4] to quit the game\n");
 	printf("> ");
-	// int menubufferlength = 5;
-	// char menubuffer[10];
-	// fgets(menubuffer, menubufferlength, stdin);
-
+	
+	char c;
 	while(1){
-		char c = getchar();
+		c = getchar();
 		switch(c){
 			case '1':
 				printf("local multiplayer\n");
@@ -221,11 +305,18 @@ int startmenu(void){
 				printf("online multiplayer\n");
 				return 2;
 			case '3':
-				return 3;
-
+				printf("How to play\n");
+				printf("\t- player 1 moves with [W], [A], [S], [D] and places bombs with [Enter]\n");
+				printf("\t- player 2 moves with [ARROW_UP], [ARROW_LEFT], [ARROW-DOWN], [ARROW_RIGHT] and places bombs with [Space]\n");
+				printf(" \n");
+				printf("Bombs can't destroy the solid blocks (#)\n");
+				break;
 			case '4':
 				return 4;
+			case ' ':
+				break;
 			default:
+				printf("> ");
 				break;
 			}
 	}
@@ -246,17 +337,18 @@ int createTermbox(){
     tb_clear();
 
 	// Map wird gezeichnet
+	char *ptr = map_ptr->ptr;
 	for(int i = 0; i < map_ptr->hoehe; i++)			// y-Koordinate
 		for(int j = 0; j < map_ptr->breite; j++){		// x-Koordinate
-			tb_change_cell(j, i, *(map_ptr->ptr), map_ptr->vg, map_ptr->hg);
-			(map_ptr->ptr)++;						// position Pointer erhoehen
+			tb_change_cell(j, i, *ptr, map_ptr->vg, map_ptr->hg);
+			ptr++;						// position Pointer erhoehen
+
 	}
 
 
     tb_present();
 
     // wartet kurz
-	sleep(2);
 	// neue Manipulation
 	tb_change_cell(10, 10, '(',0,0);
 	tb_change_cell(11, 10, ' ',0,0);
@@ -283,7 +375,6 @@ int createTermbox(){
 
 	// Zeichnet neu
 	tb_present();
-	sleep(1);
 
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
@@ -323,7 +414,8 @@ int createTermbox(){
 				int move_res = move(event.key, player1);											// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
 					// Keine Bewegung, weil ungueltige Taste oder Wand
 					if(move_res == 1){
-						tb_change_cell(10,10,'#',100,100);						 
+						tb_change_cell(10,10,'#',100,100);	
+						tb_present();					 
 						// do nothting
 					}
 					else{
@@ -336,8 +428,10 @@ int createTermbox(){
 			default :
 				;
 		}
+		// tb_change_cell(10,10,map_ptr->ptr)
 	}
 	tb_shutdown();
+	return(0);
 }
 
 
@@ -450,7 +544,7 @@ void read_map(struct map *ptr, char *str){
 
 //Animationen:
 
-void show_anim() {
+void show_anim(int time) {
 	system("clear");
 	char clets[9][68] = {
 	"+-----------------------------------------------------------------+",
@@ -465,7 +559,7 @@ void show_anim() {
 	for (int i = 0; i < 9; i++){
 		puts(clets[i]);
 	}
-	usleep(200000);
+	usleep(10000 * time);
 	const char ptr[17][68] = { 
 	 "|       #################                   ###########           |",
 	 "|   #######################            #####################      |",
@@ -486,7 +580,7 @@ void show_anim() {
 	 "+-----------------------------------------------------------------+"};
 	for (int i = 0; i < 17; i++) {
 		puts(ptr[i]);
-		usleep(15000);
+		usleep(1000 * time);
 	}
 	puts("");
 }
@@ -520,20 +614,23 @@ void show_endanim(){
 	"|   ###################### ###         #####################      |   ################                   #####              ##################### ",
 	"|      #################                    ###########           |                                                                               ", 
 	"+-----------------------------------------------------------------+-------------------------------------------------------------------------------"};
-	for (int i = 67; i < 146; i++){
+	for (int i = 67; i < 146; i += 2){
 		usleep(10000);
 		system("clear");
 		for (int j = 0; j < 26; j++){
-			char *tmp = malloc(i+1+6);
+			char *tmp = malloc(i+1);
 			strncpy(tmp, ptr[j], i);
+			tmp += i;
+			*tmp = '\0';
+			tmp -= i;
 			printf("%s", tmp);
 			if (j == 0 || j == 25){
-				puts("--+");
+				puts("-+");
 			}else{
-				puts("  |");
+				puts(" |");
 			}
 			free(tmp);
 		}
 	}
 
-}
+} 
