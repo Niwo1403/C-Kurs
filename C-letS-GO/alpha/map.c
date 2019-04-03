@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-
 // STRUCTS
 //map mit Infos...
 struct map
@@ -24,15 +23,13 @@ struct map
 	int spawnBx, spawnBy;
 	char *ptr;
 };
-
 // ein 'Pixel'
 typedef struct{
 	int x;
 	int y;
 	unsigned char ch;
 }key;	
-
-
+//Player
 typedef struct{
 	int x;				// Position auf der map
 	int y;
@@ -41,13 +38,13 @@ typedef struct{
 	int isDead;			// ob der Spieler noch lebt
 	int isActive;		// ob der Spieler am Spiel teilnimmt bzw. existiert
 }player;
+
 // GLOBALE VARIABLEN
 static struct map *map_ptr;
 int zustand = 0;
-
 enum Direction {STAND, UP, DOWN, LEFT, RIGHT};
 
-// FUNKTIONEN
+// FUNKTIONEN deklarationen
 void show_anim();
 int startmenu(void);
 int createTermbox();
