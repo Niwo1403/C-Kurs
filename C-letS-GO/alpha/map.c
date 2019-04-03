@@ -45,7 +45,8 @@ char getc_arr(int, int);
 void show_endanim();
 int check(enum Direction, int, int);
 
-//return(;);
+//git config credential.helper store
+//git push https://github.com/Niwo1493/C-Kurs.git
 
 // MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
 int main(void){
