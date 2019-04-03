@@ -43,7 +43,7 @@ void read_map(struct map *, char *);
 uint16_t hex_to_int(char);
 char getc_arr(int, int);
 void show_endanim();
-int check(enum Directon, int, int);
+int check(enum Direction, int, int);
 
 
 // MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN MAIN
@@ -96,7 +96,7 @@ char getc_arr(int x, int y){
 	return c;
 }
 
-int check(enum Directon direct, int x int y){
+int check(enum Direction direct, int x, int y){
     switch (direct){
         case UP:
             y++;
