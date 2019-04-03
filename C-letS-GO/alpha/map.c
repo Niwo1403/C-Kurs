@@ -13,13 +13,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-// ein 'Pixel'
-typedef struct key{
-	int x;
-	int y;
-	unsigned char ch;
-}key;	
 
+// STRUCTS
 //map mit Infos...
 struct map
 {
@@ -29,6 +24,23 @@ struct map
 	int spawnBx, spawnBy;
 	char *ptr;
 };
+
+// ein 'Pixel'
+typedef struct{
+	int x;
+	int y;
+	unsigned char ch;
+}key;	
+
+
+typedef struct{
+	int x;				// Position auf der map
+	int y;
+	char ch;
+	int bombs;			// Anzahl der Bomben im Inventar
+	int isDead;			// ob der Spieler noch lebt
+	int isActive;		// ob der Spieler am Spiel teilnimmt bzw. existiert
+}player;
 // GLOBALE VARIABLEN
 static struct map *map_ptr;
 
@@ -38,7 +50,7 @@ enum Direction {STAND, UP, DOWN, LEFT, RIGHT};
 void show_anim();
 int startmenu(void);
 int createTermbox();
-void move(key *figur, uint16_t direction);
+void move(player *figur, uint16_t direction);
 void read_map(struct map *, char *);
 uint16_t hex_to_int(char);
 char getc_arr(int, int);
@@ -203,9 +215,15 @@ int createTermbox(){
 
 
 	// Eine Figur anlegen
-	key figur1 = {20,15,'!'};
+	player *player1 = malloc(sizeof(player));
+	player1->x = 10;
+	player1->y = 10;
+	player1->ch = '@';
+	player1->bombs = 3;
+	player1->isDead = 0;
+	player1->isActive = 0;
 	// Figur auf Termbox registrieren
-	tb_change_cell(figur1.x, figur1.y, figur1.ch, 0,0);
+	tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg,map_ptr->hg);
 
 	// Zeichnet neu
 	tb_present();
@@ -244,7 +262,7 @@ int createTermbox(){
 				}
 
 				// sonst: Bewegung
-				move(&figur1, ev.key);
+				move(player1, ev.key);
 				break;
 
 			// Sonst passiert nix
@@ -256,7 +274,7 @@ int createTermbox(){
 	tb_shutdown();
 }
 
-void move(key *figur, uint16_t direction){
+void move(player *figur, uint16_t direction){
 	tb_change_cell(figur->x, figur->y, ' ', 0,0);		// "Pixel" wo Figur war, ist nun leer
 
 	// Position der Figur ändern oder Bombe planten
