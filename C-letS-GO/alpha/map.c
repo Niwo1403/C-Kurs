@@ -305,11 +305,17 @@ int startmenu(void){
 				printf("online multiplayer\n");
 				return 2;
 			case '3':
-				printf("How to play\n");
+				printf("How to play:\n");
 				printf("\t- player 1 moves with [W], [A], [S], [D] and places bombs with [Enter]\n");
-				printf("\t- player 2 moves with [ARROW_UP], [ARROW_LEFT], [ARROW-DOWN], [ARROW_RIGHT] and places bombs with [Space]\n");
-				printf(" \n");
-				printf("Bombs can't destroy the solid blocks (#)\n");
+				printf("\t- player 2 moves with [ARROW_UP], [ARROW_LEFT], [ARROW_DOWN], [ARROW_RIGHT] and places bombs with [Space]\n");        
+        		printf("Rules:\n");
+        		printf("\t- One game consists of several rounds\n");
+        		printf("\t- A round will end when one player dies\n");
+        		printf("\t- The first player to win 3 rounds wins the game\n");
+				printf("Tips:\n");
+				printf("\t- Bombs can't destroy the solid blocks (-, +, |)\n");
+				//printf("Bombs can destroy the destructible blocks (x)\n");
+        		printf("\t- Do not walk into the explosions!\n");
 				break;
 			case '4':
 				return 4;
