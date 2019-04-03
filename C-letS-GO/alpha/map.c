@@ -43,6 +43,7 @@ typedef struct{
 }player;
 // GLOBALE VARIABLEN
 static struct map *map_ptr;
+int zustand = 0;
 
 enum Direction {STAND, UP, DOWN, LEFT, RIGHT};
 
@@ -56,6 +57,7 @@ uint16_t hex_to_int(char);
 char getc_arr(int, int);
 void show_endanim();
 int check(enum Direction, int, int);
+void tick();
 
 //git config credential.helper store
 //git push https://github.com/Niwo1493/C-Kurs.git
@@ -65,17 +67,17 @@ int main(void){
 	// Animation
 	show_anim();
 	// Startmenue
-	int start = startmenu();
+	zustand = startmenu();
 
-	if (start == 1){
+	if (zustand == 1){
 		//Funktion, um Spiel zu starten
 	}
 
-	if (start == 2){
+	if (zustand == 2){
 		//Funktion, um online Multiplayer zu starten
 	}
 
-	if (start == 3){
+	if (zustand == 3){
 		printf("How to play\n");
 		printf("\t- player 1 moves with [W], [A], [S], [D] and places bombs with [Enter]\n");
 		printf("\t- player 2 moves with [ARROW_UP], [ARROW_LEFT], [ARROW-DOWN], [ARROW_RIGHT] and places bombs with [Space]\n");
@@ -83,7 +85,7 @@ int main(void){
 		printf("Bombs can't destroy the solid blocks (#)\n");
 	}
 
-	if (start == 4){
+	if (zustand == 4){
 		show_endanim();
 		return(0);
 	}
@@ -92,13 +94,29 @@ int main(void){
 	map_ptr = malloc(sizeof (struct map));
 	read_map(map_ptr, "./Maps/Map1.txt");
 
+	//Thread (Ticks) erstellen
+	pthread_t timerThread;
+	int res = pthread_create(&timerThread, NULL, &tick, NULL);
+	if(res != 0){
+		printf("Thread Fehler");
+		return -1;
+	}
+
 	// Hauptprogramm,
 	// res speichert den eigentlichen return-Wert
 	int res = createTermbox();
 	
+	pthread_exit(timerThread);//Thread beenden
 	return(res);
 }
 
+
+void tick(){
+	while (zustand != 4){
+
+	}
+	return 0;
+}
 
 //returns the char at (x, y)
 char getc_arr(int x, int y){
