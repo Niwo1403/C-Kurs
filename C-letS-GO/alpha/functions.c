@@ -52,7 +52,7 @@ struct player {
 	int bombs;			// Anzahl der Bomben im Inventar
 	int isDead;			// ob der Spieler noch lebt
 	int isActive;		// ob der Spieler am Spiel teilnimmt bzw. existiert
-};
+}
 
 struct bomb {
 	int x;				// Position auf der map
@@ -60,7 +60,7 @@ struct bomb {
 	int radius;			// Explosionsradius
 	int timer;			// Wie viele ticks bis zur Explosion uebrig sind
 	int isActive;		// ob die Bombe existiert
-};
+}
 
 // sollte im Menue abgefragt werden
 const int playerCount;
@@ -105,23 +105,6 @@ int hasBomb(int playerIndex) {
 	return (players[playerIndex].bombs);
 }
 
-// das Bomben-array wird so aufgeteilt, dass der erste Spieler die ersten x
-// Bombenslots zugewiesen werden, und auf die einzelnen ueber die bombsPlaced
-// Variable zugegriffen wird
-int plantBomb(int playerIndex) {
-	if (hasBomb(playerIndex)) {
-		// belege ihn, wenn es einen freien Bombenslot gibt
-		if ((int slot = findFreeBombSlot()) != -1) {
-			bombs[slot].x = players[playerIndex].;
-			bombs[slot].y = players[playerIndex].;
-			bombs[slot].radius = RADIUS; //FIXME
-			bombs[slot].timer = EXPLODETIME;//FIXME
-			bombs[slot].isActive = 1;
-		}
-	}
-	
-}
-
 // findet einen freien Bombenslot (im bombs-array) und gibt ihn aus
 int findFreeBombSlot(void) {
 	for (int i = 0; i < maxBombCount; i++) {
@@ -130,6 +113,24 @@ int findFreeBombSlot(void) {
 		}
 	}
 	return (-1); // falls kein Slot frei ist wird -1 zurueckgegeben
+}
+
+// das Bomben-array wird so aufgeteilt, dass der erste Spieler die ersten x
+// Bombenslots zugewiesen werden, und auf die einzelnen ueber die bombsPlaced
+// Variable zugegriffen wird
+int plantBomb(int playerIndex) {
+	if (hasBomb(playerIndex)) {
+		// belege ihn, wenn es einen freien Bombenslot gibt
+		if ((int slot = findFreeBombSlot()) != -1) {
+			bombs[slot].x = players[playerIndex].x;
+			bombs[slot].y = players[playerIndex].y;
+			bombs[slot].radius = RADIUS; //FIXME
+			bombs[slot].timer = EXPLODETIME;//FIXME
+			bombs[slot].isActive = 1;
+			players[playerIndex].bombs--;
+		}
+	}
+	
 }
 
 // Bombentimer dekrementieren und Bomben explodieren lassen
