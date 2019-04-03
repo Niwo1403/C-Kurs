@@ -20,40 +20,32 @@ int startmenu(void){
 		//Join Game
 
 	printf("Welcome!\n");
-	printf("\t- press 1 to play local multiplayer\n");
-    printf("\t- press 2 to play online multiplayer\n"); 
-    printf("\t- press 3 to quit the game\n");
+	printf("\t- press [1] to play local multiplayer\n");
+    printf("\t- press [2] to play online multiplayer\n"); 
+	printf("\t- press [3] to learn how to play the game\n");
+    printf("\t- press [4] to quit the game\n");
 	printf("> ");
-	int menubufferlength = 5;
-	char menubuffer[10];
-	fgets(menubuffer, menubufferlength, stdin);
-	int option = atoi(menubuffer);
-	if(option == 0){
-		printf("Keine gültige Eingabe\n");
-		startmenu();
-	}
-	else{
-		switch (option)
-		{
-			case 1:
-                printf("local multiplayer\n");
-				//Funktion für lokalen Multiplayer
-				break;
+	// int menubufferlength = 5;
+	// char menubuffer[10];
+	// fgets(menubuffer, menubufferlength, stdin);
 
-			case 2:
-                printf("online multiplayer\n");
-				//Funktion für online Multiplayer
-				break;
+	while(1){
+		char c = getchar();
+		switch(c){
+			case '1':
+				printf("local multiplayer\n");
+				return 1;
+			case '2':
+				printf("online multiplayer\n");
+				return 2;
+			case '3':
+				return 3;
 
-			case 3:
-				return(0);
-				break;
-
+			case '4':
+				return 4;
 			default:
-				printf("Keine gültige Eingabe\n ");
-				startmenu();
 				break;
-		}
+			}
 	}
 	return(0);
 }
