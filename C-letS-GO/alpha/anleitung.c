@@ -9,4 +9,3 @@
         printf("\t- One game consists of several rounds\n");
         printf("\t- A round will end when one player dies\n");
         printf("\t- The first player to win 3 rounds wins the game\n");
-
