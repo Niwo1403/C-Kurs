@@ -618,11 +618,17 @@ int createTermbox(){
 	
 	// BombenArray, DAMAGEArray
 	bomb bomb_Array[maxBombCount];
-	int DAMAGE_ARRAY[map_ptr->breite*map_ptr->hoehe];
+	for (int i = 0; i < maxBombCount; i++) {
+		bomb_Array[i].x = 0;
+		bomb_Array[i].y = 0;
+		bomb_Array[i].radius = 0;
+		bomb_Array[i].timer = 0;
+		bomb_Array[i].isActive = 0;
+	}
+	// DAMAGEArray
+	int dmg_Array[map_ptr->breite*map_ptr->hoehe];
 	for(int i = 0; i < map_ptr->breite*map_ptr->hoehe; i++)	
-		DAMAGE_ARRAY[i] = 0;
-
-
+		dmg_Array[i] = 0;
 
 
 	// Figur auf Termbox registrieren
@@ -714,7 +720,13 @@ int createTermbox(){
 					// Bombe legen
 					plantBomb(player1, bomb_Array);
 //////////////////////////////////////////////////////////////////////////////////////////////////////
+					if(bomb_Array[0].isActive){
+						int x = bomb_Array[0].x;
+						int y = bomb_Array[0].y;
 
+						tb_change_cell(x-1,y,'o',0,0);
+						tb_present();
+					}
 				}
 				else if(event.key == TB_KEY_SPACE){
 					plantBomb(player2, bomb_Array);
@@ -945,9 +957,9 @@ void show_endanim(){
 void plantBomb(player *p, bomb *bomb_Array) {
 	// prueft #bomben eines Spieleers
 	if (p->bombs) {
-		int slot;
+		int slot = findFreeBombSlot(bomb_Array);
 		// belege ihn, wenn es einen freien Bombenslot gibt
-		if ((slot = findFreeBombSlot(bomb_Array)) != -1) {
+		if (slot != -1) {
 			bomb_Array += slot;
 			bomb_Array->x = p->x;
 			bomb_Array->y = p->y;
@@ -963,7 +975,7 @@ void plantBomb(player *p, bomb *bomb_Array) {
 int findFreeBombSlot(bomb *bomb_Array) {
 	for (int i = 0; i < maxBombCount; i++) {
 		bomb_Array += i;
-		if (bomb_Array->isActive) {
+		if (! bomb_Array->isActive) {
 			bomb_Array -= i;
 			return (i);
 		}else{
