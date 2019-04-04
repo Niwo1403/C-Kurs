@@ -316,6 +316,8 @@ int startmenu(void){
 				printf("\t- Bombs can't destroy the solid blocks (-, +, |)\n");
 				//printf("Bombs can destroy the destructible blocks (x)\n");
         		printf("\t- Do not walk into the explosions!\n");
+				printf(" \n");
+				printf("If you want to play now you can now press [1] or [2] to start the game or [4] to quit the game\n");
 				break;
 			case '4':
 				return 4;
