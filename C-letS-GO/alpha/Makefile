@@ -46,10 +46,10 @@ CPPFLAGS += -DNDEBUG -O3
 endif
 
 # if not called with `make DEBUG=` compile in debug mode
-all: map
+all: CletS-GO
 
 # if not called with `make DEBUG=` compile in debug mode
-obj-y += map.o
+obj-y += CletS-GO.o
 # Append submodules to list, eg.:
 #     obj-y += mod1/module.o
 #     -include mod1/*.d
@@ -57,7 +57,7 @@ obj-y += map.o
 #include mod1/objs.mk
 
 # Build program from object list
-map: $(obj-y)
+CletS-GO: $(obj-y)
 
 # Manual GNU-style pattern-rule, equivalent to .c.o suffix rule
 %: %.o
@@ -73,7 +73,7 @@ map: $(obj-y)
 
 # Remove final binary, objects and dependency files
 clean:
-	@$(RM) -v map $(obj-y) $(obj-y:.o=.d)
+	@$(RM) -v CletS-GO $(obj-y) $(obj-y:.o=.d)
 
 # Don't use (builtin) suffix rules
 .SUFFIXES:
