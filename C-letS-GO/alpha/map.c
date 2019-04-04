@@ -313,7 +313,7 @@ int startmenu(void){
         		printf("\t- A round will end when one player dies\n");
         		printf("\t- The first player to win 3 rounds wins the game\n");
 				printf("Tips:\n");
-				printf("\t- Bombs can't destroy the solid blocks (-, +, |)\n");
+				printf("\t- Bombs can't destroy the solid blocks (-, +, |, #)\n");
 				//printf("Bombs can destroy the destructible blocks (x)\n");
         		printf("\t- Do not walk into the explosions!\n");
 				printf(" \n");
