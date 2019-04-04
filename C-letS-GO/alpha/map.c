@@ -19,11 +19,21 @@
 
 // DEFINES
 #define maxBombCount 6   // Bomben_pro_Spieler * Spieler 
-#define RADIUS 3
+#define RADIUS 6
 
 // wir gehen davon aus dass 200 = 2s ist
-#define EXPLODETIME 3
+#define EXPLODETIME 4
 #define DMGTIME 2
+
+		// Farben
+#define RED "\033[31m"
+#define BOLD "\033[1m"
+#define RESET "\033[0m"
+#define GREEN "\033[32m"
+#define YELLOW "\033[33m"
+#define BLUE "\033[34m"
+
+
 
 //STRUCTS
 //map speichert Infos zur genutzten Map
@@ -63,6 +73,7 @@ typedef struct{
 static struct map *map_ptr;
 int zustand = 0, fs;
 FILE *log = NULL;
+int winner = -1;
 
 // FUNKTIONEN deklarationen
 void show_anim(int);
@@ -114,6 +125,13 @@ int main(int argc, char **argv){
 	res = createTermbox();
 	zustand = 3;//beendet den Loop in tick() und damit den Thread
 	show_endanim();
+	if(winner == 0)
+		printf(BOLD YELLOW "\nUnentschieden!\n\n" RESET);
+	else if(winner == 1 || winner == 2)
+		printf(BOLD GREEN "\nPlayer %d hat gewonnen!\n\n" RESET, winner);
+	else 
+		printf(BOLD RED "\nSpiel abgebrochen!\n\n" RESET);
+
 	if (fs){
 		system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
 	}
@@ -376,8 +394,8 @@ int init(){
 char getc_arr(int x, int y){
 	int zs = y * (map_ptr->breite) + x;
 	char c = *(map_ptr->ptr + zs);
-	fprintf(log, "%d %d: %c (%d)\n", x, y, c, c);
-	fflush(log);
+	// fprintf(log, "%d %d: %c (%d)\n", x, y, c, c);
+	// fflush(log);
 
 	return c;
 }
@@ -586,20 +604,6 @@ int createTermbox(){
 
 
     tb_present();
-
-    // wartet kurz
-	// neue Manipulation
-	tb_change_cell(10, 10, '(',0,0);
-	tb_change_cell(11, 10, ' ',0,0);
-	tb_change_cell(12, 10, '.',0,0);
-	tb_change_cell(13, 10, ' ',0,0);
-	tb_change_cell(14, 10, 'Y',0,0);
-	tb_change_cell(15, 10, ' ',0,0);
-	tb_change_cell(16, 10, '.',0,0);
-	tb_change_cell(17, 10, ' ',0,0);
-	tb_change_cell(18, 10, ')',0,0);
-
-
 	// Eine Figur anlegen
 	player *player1 = malloc(sizeof(player));
 	player1->x = map_ptr->spawnAx;
@@ -657,10 +661,15 @@ int createTermbox(){
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
 
+	// Bombentimer
 	clock_t start = clock();
 	clock_t end;
 
-	while(1){	
+	// BombenRefresh [Inventar]
+	clock_t start_bomb = clock();
+	clock_t end_bomb;
+
+	while(winner == -1){	
 
 		struct tb_event event;
 		int tb_input = tb_peek_event(&event,5);		// welche Art von Input (Maus, Tastatur)
@@ -693,37 +702,38 @@ int createTermbox(){
 					int move_res = move(event.key, player1);								// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
 					// Keine Bewegung, weil ungueltige Taste oder Wand
 					if(move_res == 1){
-						tb_change_cell(10,10,'#',100,100);	
-						tb_present();					 
+						;
 						// do nothting
 					}
 					else{
 						int newX1 = player1->x;
 						int newY1 = player1->y;
+						// SPIELER 1 AKTUALISIEREN
 						tb_change_cell(oldX1, oldY1, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
 						tb_change_cell(newX1, newY1, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
-
+						// GEGENSPIELER AKTUALLISIEREN
 						tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
 
 						tb_present();														// TB neu printen
 					}
 				}
+				// Spieler2 bewegt sich
 				else if(event.ch == 'w' || event.ch == 'a' || event.ch == 's' || event.ch == 'd'){
 					int oldX2 = player2->x;
 					int oldY2 = player2->y;
 					int move_res = move2(event.ch, player2);								// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
 					// Keine Bewegung, weil ungueltige Taste oder Wand
 					if(move_res == 1){
-						tb_change_cell(10,10,'#',100,100);	
-						tb_present();					 
+						;					 
 						// do nothting
 					}
 					else{
 						int newX2 = player2->x;
 						int newY2 = player2->y;
+						// SPIELER 2 AKTUALLISIEREN
 						tb_change_cell(oldX2, oldY2, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
 						tb_change_cell(newX2, newY2, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
-
+						// GEGENSPIELER AKTUALLISIERUNG
 						tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
 
 						tb_present();														// TB neu printen
@@ -734,19 +744,6 @@ int createTermbox(){
 				else if(event.key == TB_KEY_ENTER){
 					// Bombe legen
 					plantBomb(player1, bomb_Array);
-			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
-			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-					if(bomb_Array[0].isActive){
-						int x = bomb_Array[0].x;
-						int y = bomb_Array[0].y;
-
-						tb_change_cell(x-1,y,'o',0,0);
-						tb_present();
-					}
 				}
 				else if(event.key == TB_KEY_SPACE){
 					plantBomb(player2, bomb_Array);
@@ -757,32 +754,39 @@ int createTermbox(){
 				break;
 			default :
 				;
-		}
+		} // switch
 		end = clock();
-		// hier nach Bomben aktuallisieren - EIN TICK
+		end_bomb = clock();
+
+		// ANFANG BOMBENTICK
 		if( ( (double) (end-start) / CLOCKS_PER_SEC )> 0.01){
 			start = clock();
-			// tb_change_cell(player1->x, player1->y, player1->ch, 100,100);
-			// tb_present();
 
 			// tickt runter
 			tickBombs(dmg_Array, bomb_Array);
-			char a = bomb_Array[0].timer + '0';
-			tb_change_cell(player1->x, player1->y, a, 0,100);
-			tb_present();
 
-			// dmg-Map akuallisieren
+
+			// ALLE BOMBEN PRINTEN
+			for(int i = 0; i < maxBombCount; i++){
+				if(bomb_Array[i].isActive)
+					// BOMBE ROT (VG)
+					tb_change_cell(bomb_Array[i].x, bomb_Array[i].y,'o',TB_BLACK,map_ptr->hg);
+			}
+	
+
+			// dmg-Map akuallisieren	- 	BOMBEN RADIUS wird gezeichnet
 			for(int i = 0; i < map_ptr->hoehe; i++){
+				// Animation der Bomben
 				for(int j = 0; j < map_ptr->breite; j++){
 					if(*dmg_Array != 0){
 						// wenn Schaden von 1 --> 0, dann reprint()
 						if(*dmg_Array == 1){
-							tb_change_cell(j,i,' ',0,0);
+							// BOMBE RESET (HG)
+							tb_change_cell(j,i,' ',map_ptr->vg, map_ptr->hg);
 						}
 						else{
-							tb_change_cell(j,i,'x',0,0);
-							fprintf(log, "Hallo %d\n", *dmg_Array);
-							fflush(log);
+							// EXPLOSION = ROT (HG)
+							tb_change_cell(j,i,' ',map_ptr->vg,TB_BLACK);
 						}
 						(*dmg_Array)--;
 					}
@@ -791,20 +795,59 @@ int createTermbox(){
 			}
 			dmg_Array -= map_ptr->breite * map_ptr->hoehe;
 			tb_present();
+		} // ENDE BOMBENTICK
 
-			// // Bomben printen lel
-			// for(int i = 0; i < map_ptr->hoehe; i++){
-			// 	for(int j = 0; j < map_ptr->breite; j++){
-			// 		if(0 < *dmg_Array){
-			// 			tb_change_cell(i, j, 'x', 255, 0);
-			// 		}
-			// 		dmg_Array++;
-			// 	}
-			// }
-			// dmg_Array -= map_ptr->breite * 
-			// tb_present();
+		// BOMBEN REFRESH
+		if( ( (double) (end_bomb - start_bomb) / CLOCKS_PER_SEC )> 0.03){
+			start_bomb = clock();
+
+			// BombenCap Player1 erreicht?
+			if(player1->bombs < 3)
+				(player1->bombs)++;
+
+			// BombenCap Player2 erreicht?
+			if(player2->bombs < 3)
+				(player2->bombs)++;
+
+		} // ENDE BOMBEN REFRESH
+
+
+		// pruefe ob Spieler in Bombe gerannt ist lel (AUF DEM DMG ARRAY)
+		int player1_i = player1->x + player1->y * map_ptr->breite;
+		int player2_i = player2->x + player2->y * map_ptr->breite;
+
+		// DMG-Array zeigt dahin wo spieler steht auf map
+
+		// Player 1 tot?
+		dmg_Array += player1_i;
+		if(0 < *dmg_Array)
+			player1->isDead = 1;
+		dmg_Array -= player1_i;
+
+		// Player2 tot?
+		dmg_Array += player2_i;
+		if(0 < *dmg_Array)
+			player2->isDead = 1;
+		dmg_Array -= player2_i;
+
+
+		// Gewinner?
+		if(player1->isDead){
+			if(player2->isDead)
+				winner = 0;		// unentschieden
+			else
+				winner = 2;		// 1 gewinnt
 		}
-	}
+		else if(player2->isDead)
+			winner = 1;			// 2 gewinnt
+
+		if(winner != -1){
+			// tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg, map_ptr->hg);
+			// tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg, map_ptr->hg);
+			sleep(1);
+		}
+		
+	} // while
 	tb_shutdown();
 	return(0);
 }
@@ -1088,7 +1131,7 @@ void show_anim(int time) {
 	"|   #######         #####    #########       ###      ########    |",
 	"|=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=~=|"};
 	for (int i = 0; i < 9; i++){
-		puts(clets[i]);
+		printf(BOLD BLUE "%s\n" RESET, clets[i]);
 	}
 	usleep(10000 * time);
 	const char ptr[17][68] = { 
@@ -1110,7 +1153,7 @@ void show_anim(int time) {
 	 "|      #################                    ###########           |",
 	 "+-----------------------------------------------------------------+"};
 	for (int i = 0; i < 17; i++) {
-		puts(ptr[i]);
+		printf(BOLD BLUE "%s\n" RESET, ptr[i]);
 		usleep(1000 * time);
 	}
 	puts("");
@@ -1154,11 +1197,11 @@ void show_endanim(){
 			tmp += i;
 			*tmp = '\0';
 			tmp -= i;
-			printf("%s", tmp);
+			printf(BOLD BLUE "%s" RESET, tmp);
 			if (j == 0 || j == 25){
-				puts("-+");
+				printf(BOLD BLUE "-+\n" RESET);
 			}else{
-				puts(" |");
+				printf(BOLD BLUE " |\n" RESET);
 			}
 			free(tmp);
 		}
