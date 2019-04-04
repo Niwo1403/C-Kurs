@@ -16,10 +16,18 @@
 #include <dirent.h>
 #include <pthread.h>
 
+
+// DEFINES
+#define maxBombCount 6   // Bomben_pro_Spieler * Spieler 
+#define RADIUS 8
+
+// wir gehen davon aus dass 200 = 2s ist
+#define EXPLODETIME 200
+#define DMGTIME 100
+
 //STRUCTS
 //map speichert Infos zur genutzten Map
-struct map
-{
+struct map{
 	int hoehe, breite;
 	uint16_t vg, hg;
 	int spawnAx, spawnAy;
@@ -41,6 +49,15 @@ typedef struct{
 	int isDead;			// ob der Spieler noch lebt
 	int isActive;		// ob der Spieler am Spiel teilnimmt bzw. existiert
 }player;
+
+typedef struct{
+	int x;				// Position auf der map
+	int y;
+	int radius;			// Explosionsradius
+	int timer;			// Wie viele ticks bis zur Explosion uebrig sind
+	int isActive;		// ob die Bombe existiert
+}bomb;
+
 
 // GLOBALE VARIABLEN
 static struct map *map_ptr;
@@ -69,6 +86,12 @@ int fullscreen(int, char **);
 void generate_map(int, int);
 void start_generating();
 void write_char(int, int, char);
+		// Bomben
+void plantBomb(player *p, bomb *bomb_Array);
+int findFreeBombSlot(bomb *bomb_Array);
+void tickBombs(int *dmg_Array, bomb *bomb_Array);
+void explosion(int *dmg_Array, bomb *bomb_Array);
+int directionNonSolid(int x, int y, char direction);
 
 int main(int argc, char **argv){
 	fs = fullscreen(argc, argv);
@@ -563,6 +586,15 @@ int createTermbox(){
 	player2->isDead = 0;
 	player2->isActive = 0;
 
+	
+	// BombenArray, DAMAGEArray
+	bomb bomb_Array[maxBombCount];
+	int DAMAGE_ARRAY[map_ptr->breite*map_ptr->hoehe];
+	for(int i = 0; i < map_ptr->breite*map_ptr->hoehe; i++)	
+		DAMAGE_ARRAY[i] = 0;
+
+
+
 
 	// Figur auf Termbox registrieren
 	tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg,map_ptr->hg);
@@ -647,6 +679,16 @@ int createTermbox(){
 						tb_present();														// TB neu printen
 					}
 
+				}
+				// Player 1 Bombe
+				else if(event.key == TB_KEY_ENTER){
+					// Bombe legen
+					plantBomb(player1, bomb_Array);
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+				}
+				else if(event.key == TB_KEY_SPACE){
+					plantBomb(player2, bomb_Array);
 				}
 				else{
 					;
@@ -866,25 +908,152 @@ void show_endanim(){
 
 } 
 
-/*
-  o
 
-  O
-  _
- / \
- \_/
-  ___
- /   \
-|     |
- \___/
-  _ _
- / | \ 
-|--+--|
- \_|_/
+// findet einen freien Bombenslot (im bombs-array) und gibt ihn aus
+// das Bomben-array wird so aufgeteilt, dass der erste Spieler die ersten x
+// Bombenslots zugewiesen werden, und auf die einzelnen ueber die bombsPlaced
+// Variable zugegriffen wird
+void plantBomb(player *p, bomb *bomb_Array) {
+	// prueft #bomben eines Spieleers
+	if (p->bombs) {
+		int slot;
+		// belege ihn, wenn es einen freien Bombenslot gibt
+		if ((slot = findFreeBombSlot(bomb_Array)) != -1) {
+			bomb_Array += slot;
+			bomb_Array->x = p->x;
+			bomb_Array->y = p->y;
+			bomb_Array->radius = RADIUS; 
+			bomb_Array->timer = EXPLODETIME;
+			bomb_Array->isActive = 1;
+			(p->bombs)--;
+			bomb_Array -= slot;
 
-   \_|_/
- -\/ | \/- 
---|--+--|--
- -/\_|_/\-
-   / | \
- */
+		}
+	}
+}
+int findFreeBombSlot(bomb *bomb_Array) {
+	for (int i = 0; i < maxBombCount; i++) {
+		bomb_Array += i;
+		if (bomb_Array->isActive) {
+			bomb_Array -= i;
+			return (i);
+		}else{
+			bomb_Array -= i;
+		}
+	}
+	return (-1); // falls kein Slot frei ist wird -1 zurueckgegeben
+}
+
+
+
+void tickBombs(int *dmg_Array, bomb *bomb_Array) {
+	for (int i = 0; i < maxBombCount; i++){
+		// Index hin
+		bomb_Array += i;
+		// wenn der Bombenslot aktiv ist
+		if (bomb_Array->isActive) {
+			if (bomb_Array->timer < 1) {
+				explosion(dmg_Array, bomb_Array);
+			} else {
+				(bomb_Array->timer)--;
+			}
+			
+		}
+		// Index back
+		(bomb_Array) -= i;
+	}
+}
+// void explodeBomb(bomb *bomb_Array) {
+// 	explosion(bomb_Array->x, bomb_Array->y, EXPLODETIME, RADIUS); 
+// }
+void explosion(int *dmg_Array, bomb *bomb_Array){
+
+	// Kopie vom Array
+	int *copy = dmg_Array;
+
+	// x-y Koordinate der Bombe zwischenspeichern
+	int x = bomb_Array->x;
+	int y = bomb_Array->y;
+
+	// verschiebe Bomben-Array-Pointer zur Bombe (fuer Index)
+	copy += x + y * (map_ptr->breite);
+
+	*copy = DMGTIME;
+	int up = 0;
+	int down = 0;
+	int left = 0;
+	int right = 0;
+	// expandiere Explosion solange der naechste Schritt kein solid ist
+	// (bis radius erreich ist)
+	while (!directionNonSolid(x, y, 'u') && up < RADIUS){
+		up++;
+		// eins nach oben verschieben
+		copy -= map_ptr->breite * up; 
+		*copy = DMGTIME;
+		copy += map_ptr->breite * up;
+	}
+	while (!directionNonSolid(x, y, 'd') && down < RADIUS){
+		down++;
+		// eins nach unten verschieben
+		copy += map_ptr->breite * down; 
+		*copy = DMGTIME;
+		copy -= map_ptr->breite * down;
+	}
+	while (!directionNonSolid(x, y, 'l') && left < RADIUS){
+		left++;
+		// eins nach links verschieben
+		copy -= left; 
+		*copy = DMGTIME;
+		copy += left;
+	}
+	while (!directionNonSolid(x, y, 'r') && right < RADIUS){
+		right++;
+		// eins nach rechts verschieben
+		copy += right; 
+		*copy = DMGTIME;
+		copy -= right;
+	}
+	copy -= x + y * (map_ptr->breite);
+}
+
+// ist dort ein solid?
+int directionNonSolid(int x, int y, char direction){
+	switch(direction){
+		case 'u' :
+			if (y == 0)
+				return(1);
+			else{
+				char c = getc_arr(x,y-1);
+				// returnt 1, wenn solid, und 0 wenn nicht
+				return(!(c == '+' || c == '-' || c == '|' || c == '#'));
+			}
+		case 'd' :
+			//FIXME ARRAY_YMAX durch Array-Hoehe ersetzen
+			if (y == map_ptr->hoehe) 
+				return(1);
+			else {
+				char c = getc_arr(x,y+1);
+				// returnt 1, wenn solid, und 0 wenn nicht
+				return(!(c == '+' || c == '-' || c == '|' || c == '#'));
+			}
+		case 'l' :
+			if (x == 0) 
+				return(1);
+			else {
+				char c = getc_arr(x-1, y);
+				// returnt 1, wenn solid, und 0 wenn nicht
+				return(!(c == '+' || c == '-' || c == '|' || c == '#'));	
+			}
+		case 'r' :
+			//FIXME ARRAY_XMAX durch Array-Breite ersetzen
+			if (x == map_ptr->breite)
+				return(1);
+			else {
+				char c = getc_arr(x+1,y);
+				// returnt 1, wenn solid, und 0 wenn nicht
+				return(!(c == '+' || c == '-' || c == '|' || c == '#'));
+			}
+		default:
+			return(1);
+	}
+}
