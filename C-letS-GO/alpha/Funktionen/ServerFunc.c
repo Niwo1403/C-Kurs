@@ -152,7 +152,7 @@ void *serverReciveFunc(void* val){
 
 			if(FD_ISSET(sd, &readfds)){
 				if((valread = read(sd, buffer, 1024)) == 0){
-					//User disconected
+					userDisconnect(sd)
 					close(sd);
 					client_socket[i] = 0;
 				}else{
@@ -181,4 +181,8 @@ void reciveMessageS(char *msg, int ClientID){
 					
 }
 
+void userDisconnect(int ClientID){
+	//was soll beim Disconnect passieren
+
+}
  
