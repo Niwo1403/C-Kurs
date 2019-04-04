@@ -50,13 +50,18 @@ FILE *log = NULL;
 // FUNKTIONEN deklarationen
 void show_anim(int);
 int startmenu(void);
+
+	// Termbox
 int createTermbox();
 int move(uint16_t button, player *p);
+int check(int, player *);
+int move2(uint32_t button, player *p);
+int check2(int direct, player *p2);
+
 void read_map(struct map *, char *);
 uint16_t hex_to_int(char);
 char getc_arr(int, int);
 void show_endanim();
-int check(int, player *);
 void *tick(void *);
 char *getLink();
 int init();
@@ -341,7 +346,7 @@ int check(int direct, player *p){
             c = getc_arr(p->x, (p->y) -1 );
             fprintf(log, "Zeichen oben %c (%d)\n", c, c);
             fflush(log);
-    		if (c == '+' || c == '-' || c == '|')
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
     			return 1;
     		// alles gut
           	(p->y)--;
@@ -351,7 +356,7 @@ int check(int direct, player *p){
             c = getc_arr(p->x, p->y +1 );
             fprintf(log, "Zeichen unten %c (%d)\n", c, c);
             fflush(log);
-    		if (c == '+' || c == '-' || c == '|')
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
     			return 1;
 
     		// alles gut
@@ -362,7 +367,7 @@ int check(int direct, player *p){
             c = getc_arr(p->x -1 , p->y);
             fprintf(log, "Zeichen links %c (%d)\n", c, c);
             fflush(log);
-    		if (c == '+' || c == '-' || c == '|')
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
     			return 1;
 
     		// alles gut
@@ -373,11 +378,73 @@ int check(int direct, player *p){
             c = getc_arr(p->x +1, p->y);
             fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
             fflush(log);
-    		if (c == '+' || c == '-' || c == '|')
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
     			return 1;
 
     		// alles gut
             (p->x)++;
+            break;
+        default:
+        	return 1;
+            break;
+    }
+    return 0;
+}
+int move2(uint32_t button, player *p2){
+		// Invalide Taste gibt es nicht, wurde schon geprueft
+
+		// haben safe w a s d
+
+		// kann man sich bewegen?
+		int check_res = check2(button, p2);
+		return(check_res);
+}
+
+int check2(int direct, player *p2){
+	char c;
+    switch (direct){
+        case 'w':
+        	// border?
+            c = getc_arr(p2->x, (p2->y) -1 );
+            fprintf(log, "Zeichen oben %c (%d)\n", c, c);
+            fflush(log);
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
+    			return 1;
+    		// alles gut
+          	(p2->y)--;
+            break;
+        case 's':
+            // border?
+            c = getc_arr(p2->x, p2->y +1 );
+            fprintf(log, "Zeichen unten %c (%d)\n", c, c);
+            fflush(log);
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
+    			return 1;
+
+    		// alles gut
+            (p2->y)++;
+            break;
+        case 'a':
+            // border?
+            c = getc_arr(p2->x -1 , p2->y);
+            fprintf(log, "Zeichen links %c (%d)\n", c, c);
+            fflush(log);
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
+    			return 1;
+
+    		// alles gut
+            (p2->x)--;
+            break;
+        case 'd':
+            // border?
+            c = getc_arr(p2->x +1, p2->y);
+            fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
+            fflush(log);
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
+    			return 1;
+
+    		// alles gut
+            (p2->x)++;
             break;
         default:
         	return 1;
@@ -483,13 +550,23 @@ int createTermbox(){
 	player *player1 = malloc(sizeof(player));
 	player1->x = map_ptr->spawnAx;
 	player1->y = map_ptr->spawnAy;
-	player1->ch = '@';
+	player1->ch = '1';
 	player1->bombs = 3;
 	player1->isDead = 0;
 	player1->isActive = 0;
 
+	player *player2 = malloc(sizeof(player));
+	player2->x = map_ptr->spawnBx;
+	player2->y = map_ptr->spawnBy;
+	player2->ch = '2';
+	player2->bombs = 3;
+	player2->isDead = 0;
+	player2->isActive = 0;
+
+
 	// Figur auf Termbox registrieren
 	tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg,map_ptr->hg);
+	tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg,map_ptr->hg);
 
 	// Zeichnet neu
 	tb_present();
@@ -520,16 +597,18 @@ int createTermbox(){
 					tb_shutdown();
 					return(0);
 				}
-				// eine andere Taste wurde gedrueckt
-				int oldX = player1->x;
-				int oldY = player1->y;
-				// move() checks if pressed KEY is valid (= player moves) 
-				// 			|
-				//			+--> with parameter tb_input
-				//
-				// if not(move_res = 1), termbox will do nothing
-				// if yes(move_res = 0), termbox will print changed array_slots (oldX, oldY, newX, newY)
-				int move_res = move(event.key, player1);											// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
+				// PFEILTASTEN
+				else if(TB_KEY_ARROW_RIGHT <= event.key && event.key <= TB_KEY_ARROW_UP){
+					// eine andere Taste wurde gedrueckt
+					int oldX1 = player1->x;
+					int oldY1 = player1->y;
+					// move() checks if pressed KEY is valid (= player moves) 
+					// 			|
+					//			+--> with parameter tb_input
+					//
+					// if not(move_res = 1), termbox will do nothing
+					// if yes(move_res = 0), termbox will print changed array_slots (oldX, oldY, newX, newY)
+					int move_res = move(event.key, player1);								// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
 					// Keine Bewegung, weil ungueltige Taste oder Wand
 					if(move_res == 1){
 						tb_change_cell(10,10,'#',100,100);	
@@ -537,12 +616,42 @@ int createTermbox(){
 						// do nothting
 					}
 					else{
-						int newX = player1->x;
-						int newY = player1->y;
-						tb_change_cell(oldX, oldY, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
-						tb_change_cell(newX, newY, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+						int newX1 = player1->x;
+						int newY1 = player1->y;
+						tb_change_cell(oldX1, oldY1, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
+						tb_change_cell(newX1, newY1, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+
+						tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+
 						tb_present();														// TB neu printen
 					}
+				}
+				else if(event.ch == 'w' || event.ch == 'a' || event.ch == 's' || event.ch == 'd'){
+					int oldX2 = player2->x;
+					int oldY2 = player2->y;
+					int move_res = move2(event.ch, player2);								// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
+					// Keine Bewegung, weil ungueltige Taste oder Wand
+					if(move_res == 1){
+						tb_change_cell(10,10,'#',100,100);	
+						tb_present();					 
+						// do nothting
+					}
+					else{
+						int newX2 = player2->x;
+						int newY2 = player2->y;
+						tb_change_cell(oldX2, oldY2, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
+						tb_change_cell(newX2, newY2, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+
+						tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+
+						tb_present();														// TB neu printen
+					}
+
+				}
+				else{
+					;
+				}
+				break;
 			default :
 				;
 		}
