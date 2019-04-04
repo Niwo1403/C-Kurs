@@ -117,6 +117,9 @@ int main(int argc, char **argv){
 	if (fs){
 		system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
 	}
+	free(timerThread);
+	free(map_ptr->ptr);
+	free(map_ptr);
 	return(res);
 }
 
@@ -332,6 +335,8 @@ int init(){
 		if (fs){
 			system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
 		}
+		free(map_ptr->ptr);
+		free(map_ptr);
 		return 1;
 	}
 	// Map erstellen
