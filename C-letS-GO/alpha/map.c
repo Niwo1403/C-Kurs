@@ -15,15 +15,15 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <pthread.h>
-
+#include <time.h>
 
 // DEFINES
 #define maxBombCount 6   // Bomben_pro_Spieler * Spieler 
-#define RADIUS 8
+#define RADIUS 3
 
 // wir gehen davon aus dass 200 = 2s ist
-#define EXPLODETIME 200
-#define DMGTIME 100
+#define EXPLODETIME 3
+#define DMGTIME 2
 
 //STRUCTS
 //map speichert Infos zur genutzten Map
@@ -618,6 +618,10 @@ int createTermbox(){
 	player2->isActive = 0;
 
 	
+
+	fprintf(log, "breite: %d \t hoehe: %d\n", map_ptr->breite, map_ptr->hoehe);
+	fflush(log);	
+
 	// BombenArray, DAMAGEArray
 	bomb bomb_Array[maxBombCount];
 	for (int i = 0; i < maxBombCount; i++) {
@@ -628,10 +632,17 @@ int createTermbox(){
 		bomb_Array[i].isActive = 0;
 	}
 	// DAMAGEArray
-	int dmg_Array[map_ptr->breite*map_ptr->hoehe];
-	for(int i = 0; i < map_ptr->breite*map_ptr->hoehe; i++)	
-		dmg_Array[i] = 0;
+	// int dmg_Array[map_ptr->breite*map_ptr->hoehe];
+	// for(int i = 0; i < map_ptr->breite*map_ptr->hoehe; i++)	
+	// 	dmg_Array[i] = 0;
 
+	int *dmg_Array = malloc(map_ptr->breite * map_ptr->hoehe * sizeof(int));
+	for(int i = 0; i < map_ptr->breite * map_ptr->hoehe; i++){
+		*dmg_Array = 0;
+		dmg_Array += 1;
+	}
+	dmg_Array -= map_ptr->breite * map_ptr->hoehe;
+		
 
 	// Figur auf Termbox registrieren
 	tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg,map_ptr->hg);
@@ -646,11 +657,13 @@ int createTermbox(){
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
 
+	clock_t start = clock();
+	clock_t end;
 
-		// NEU NEU NEU NEU EVENT EVENT EVENT EVENT 
-	while(1){
+	while(1){	
+
 		struct tb_event event;
-		int tb_input = tb_poll_event(&event);		// welche Art von Input (Maus, Tastatur)
+		int tb_input = tb_peek_event(&event,5);		// welche Art von Input (Maus, Tastatur)
 
 		// Falls Fehler
 		if(tb_input == -1){
@@ -721,7 +734,12 @@ int createTermbox(){
 				else if(event.key == TB_KEY_ENTER){
 					// Bombe legen
 					plantBomb(player1, bomb_Array);
-//////////////////////////////////////////////////////////////////////////////////////////////////////
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////	
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 					if(bomb_Array[0].isActive){
 						int x = bomb_Array[0].x;
 						int y = bomb_Array[0].y;
@@ -740,10 +758,207 @@ int createTermbox(){
 			default :
 				;
 		}
-		// tb_change_cell(10,10,map_ptr->ptr)
+		end = clock();
+		// hier nach Bomben aktuallisieren - EIN TICK
+		if( ( (double) (end-start) / CLOCKS_PER_SEC )> 0.01){
+			start = clock();
+			// tb_change_cell(player1->x, player1->y, player1->ch, 100,100);
+			// tb_present();
+
+			// tickt runter
+			tickBombs(dmg_Array, bomb_Array);
+			char a = bomb_Array[0].timer + '0';
+			tb_change_cell(player1->x, player1->y, a, 0,100);
+			tb_present();
+
+			// dmg-Map akuallisieren
+			for(int i = 0; i < map_ptr->hoehe; i++){
+				for(int j = 0; j < map_ptr->breite; j++){
+					if(*dmg_Array != 0){
+						// wenn Schaden von 1 --> 0, dann reprint()
+						if(*dmg_Array == 1){
+							tb_change_cell(j,i,' ',0,0);
+						}
+						else{
+							tb_change_cell(j,i,'x',0,0);
+							fprintf(log, "Hallo %d\n", *dmg_Array);
+							fflush(log);
+						}
+						(*dmg_Array)--;
+					}
+					dmg_Array++;
+				}
+			}
+			dmg_Array -= map_ptr->breite * map_ptr->hoehe;
+			tb_present();
+
+			// // Bomben printen lel
+			// for(int i = 0; i < map_ptr->hoehe; i++){
+			// 	for(int j = 0; j < map_ptr->breite; j++){
+			// 		if(0 < *dmg_Array){
+			// 			tb_change_cell(i, j, 'x', 255, 0);
+			// 		}
+			// 		dmg_Array++;
+			// 	}
+			// }
+			// dmg_Array -= map_ptr->breite * 
+			// tb_present();
+		}
 	}
 	tb_shutdown();
 	return(0);
+}
+
+
+// BOMBEN BOMBEN BOMBEN BOMBEN BOMBEN BOMBEN BOMBEN
+
+// findet einen freien Bombenslot (im bombs-array) und gibt ihn aus
+// das Bomben-array wird so aufgeteilt, dass der erste Spieler die ersten x
+// Bombenslots zugewiesen werden, und auf die einzelnen ueber die bombsPlaced
+// Variable zugegriffen wird
+void plantBomb(player *p, bomb *bomb_Array) {
+	// prueft #bomben eines Spieleers
+	if (p->bombs) {
+		int slot = findFreeBombSlot(bomb_Array);
+		// belege ihn, wenn es einen freien Bombenslot gibt
+		if (slot != -1) {
+			bomb_Array += slot;
+			bomb_Array->x = p->x;
+			bomb_Array->y = p->y;
+			bomb_Array->radius = RADIUS; 
+			bomb_Array->timer = EXPLODETIME;
+			bomb_Array->isActive = 1;
+			(p->bombs)--;
+			bomb_Array -= slot;
+
+		}
+	}
+}
+int findFreeBombSlot(bomb *bomb_Array) {
+	for (int i = 0; i < maxBombCount; i++) {
+		bomb_Array += i;
+		if (! bomb_Array->isActive) {
+			bomb_Array -= i;
+			return (i);
+		}else{
+			bomb_Array -= i;
+		}
+	}
+	return (-1); // falls kein Slot frei ist wird -1 zurueckgegeben
+}
+
+
+// Zaehlt den TImer fuer Bombe runter
+void tickBombs(int *dmg_Array, bomb *bomb_Array) {
+	for (int i = 0; i < maxBombCount; i++){
+		// Index hin
+		bomb_Array += i;
+		// wenn der Bombenslot aktiv ist
+		if (bomb_Array->isActive) {
+			if (bomb_Array->timer < 1) {
+				explosion(dmg_Array, bomb_Array);
+				bomb_Array->isActive = 0;
+			} else {
+				(bomb_Array->timer)--;
+			}
+			
+		}
+		// Index back
+		(bomb_Array) -= i;
+	}
+}
+// void explodeBomb(bomb *bomb_Array) {
+// 	explosion(bomb_Array->x, bomb_Array->y, EXPLODETIME, RADIUS); 
+// }
+void explosion(int *dmg_Array, bomb *bomb_Array){
+
+	// Kopie vom Array
+	int *copy = dmg_Array;
+
+	// x-y Koordinate der Bombe zwischenspeichern
+	int x = bomb_Array->x;
+	int y = bomb_Array->y;
+
+	// verschiebe Bomben-Array-Pointer zur Bombe (fuer Index)
+	copy += x + y * (map_ptr->breite);
+
+	*copy = DMGTIME;
+	int up = 0;
+	int down = 0;
+	int left = 0;
+	int right = 0;
+	// expandiere Explosion solange der naechste Schritt kein solid ist
+	// (bis radius erreich ist)
+	while (directionNonSolid(x, y-up, 'u') && up < RADIUS){
+		up++;
+		// eins nach oben verschieben
+		copy -= map_ptr->breite * up; 
+		*copy = DMGTIME;
+		copy += map_ptr->breite * up;
+	}
+	while (directionNonSolid(x, y+down, 'd') && down < RADIUS){
+		down++;
+		// eins nach unten verschieben
+		copy += map_ptr->breite * down; 
+		*copy = DMGTIME;
+		copy -= map_ptr->breite * down;
+	}
+	while (directionNonSolid(x-left, y, 'l') && left < RADIUS){
+		left++;
+		// eins nach links verschieben
+		copy -= left; 
+		*copy = DMGTIME;
+		copy += left;
+	}
+	while (directionNonSolid(x+right, y, 'r') && right < RADIUS){
+		right++;
+		// eins nach rechts verschieben
+		copy += right; 
+		*copy = DMGTIME;
+		copy -= right;
+	}
+	copy -= x + y * (map_ptr->breite);
+}
+
+// ist dort ein solid?
+int directionNonSolid(int x, int y, char direction){
+	switch(direction){
+		case 'u' :
+			if (y == 0)
+				return(1);
+			else{
+				char c = getc_arr(x,y-1);
+				// returnt 1, wenn solid, und 0 wenn nicht
+				return(!(c == '+' || c == '-' || c == '|' || c == '#'));
+			}
+		case 'd' :
+			if (y == map_ptr->hoehe) 
+				return(1);
+			else {
+				char c = getc_arr(x,y+1);
+				// returnt 1, wenn solid, und 0 wenn nicht
+				return(!(c == '+' || c == '-' || c == '|' || c == '#'));
+			}
+		case 'l' :
+			if (x == 0) 
+				return(1);
+			else {
+				char c = getc_arr(x-1, y);
+				// returnt 1, wenn solid, und 0 wenn nicht
+				return(!(c == '+' || c == '-' || c == '|' || c == '#'));	
+			}
+		case 'r' :
+			//FIXME ARRAY_XMAX durch Array-Breite ersetzen
+			if (x == map_ptr->breite)
+				return(1);
+			else {
+				char c = getc_arr(x+1,y);
+				// returnt 1, wenn solid, und 0 wenn nicht
+				return(!(c == '+' || c == '-' || c == '|' || c == '#'));
+			}
+		default:
+			return(1);
+	}
 }
 
 
@@ -950,153 +1165,3 @@ void show_endanim(){
 	}
 
 } 
-
-
-// findet einen freien Bombenslot (im bombs-array) und gibt ihn aus
-// das Bomben-array wird so aufgeteilt, dass der erste Spieler die ersten x
-// Bombenslots zugewiesen werden, und auf die einzelnen ueber die bombsPlaced
-// Variable zugegriffen wird
-void plantBomb(player *p, bomb *bomb_Array) {
-	// prueft #bomben eines Spieleers
-	if (p->bombs) {
-		int slot = findFreeBombSlot(bomb_Array);
-		// belege ihn, wenn es einen freien Bombenslot gibt
-		if (slot != -1) {
-			bomb_Array += slot;
-			bomb_Array->x = p->x;
-			bomb_Array->y = p->y;
-			bomb_Array->radius = RADIUS; 
-			bomb_Array->timer = EXPLODETIME;
-			bomb_Array->isActive = 1;
-			(p->bombs)--;
-			bomb_Array -= slot;
-
-		}
-	}
-}
-int findFreeBombSlot(bomb *bomb_Array) {
-	for (int i = 0; i < maxBombCount; i++) {
-		bomb_Array += i;
-		if (! bomb_Array->isActive) {
-			bomb_Array -= i;
-			return (i);
-		}else{
-			bomb_Array -= i;
-		}
-	}
-	return (-1); // falls kein Slot frei ist wird -1 zurueckgegeben
-}
-
-
-
-void tickBombs(int *dmg_Array, bomb *bomb_Array) {
-	for (int i = 0; i < maxBombCount; i++){
-		// Index hin
-		bomb_Array += i;
-		// wenn der Bombenslot aktiv ist
-		if (bomb_Array->isActive) {
-			if (bomb_Array->timer < 1) {
-				explosion(dmg_Array, bomb_Array);
-			} else {
-				(bomb_Array->timer)--;
-			}
-			
-		}
-		// Index back
-		(bomb_Array) -= i;
-	}
-}
-// void explodeBomb(bomb *bomb_Array) {
-// 	explosion(bomb_Array->x, bomb_Array->y, EXPLODETIME, RADIUS); 
-// }
-void explosion(int *dmg_Array, bomb *bomb_Array){
-
-	// Kopie vom Array
-	int *copy = dmg_Array;
-
-	// x-y Koordinate der Bombe zwischenspeichern
-	int x = bomb_Array->x;
-	int y = bomb_Array->y;
-
-	// verschiebe Bomben-Array-Pointer zur Bombe (fuer Index)
-	copy += x + y * (map_ptr->breite);
-
-	*copy = DMGTIME;
-	int up = 0;
-	int down = 0;
-	int left = 0;
-	int right = 0;
-	// expandiere Explosion solange der naechste Schritt kein solid ist
-	// (bis radius erreich ist)
-	while (!directionNonSolid(x, y, 'u') && up < RADIUS){
-		up++;
-		// eins nach oben verschieben
-		copy -= map_ptr->breite * up; 
-		*copy = DMGTIME;
-		copy += map_ptr->breite * up;
-	}
-	while (!directionNonSolid(x, y, 'd') && down < RADIUS){
-		down++;
-		// eins nach unten verschieben
-		copy += map_ptr->breite * down; 
-		*copy = DMGTIME;
-		copy -= map_ptr->breite * down;
-	}
-	while (!directionNonSolid(x, y, 'l') && left < RADIUS){
-		left++;
-		// eins nach links verschieben
-		copy -= left; 
-		*copy = DMGTIME;
-		copy += left;
-	}
-	while (!directionNonSolid(x, y, 'r') && right < RADIUS){
-		right++;
-		// eins nach rechts verschieben
-		copy += right; 
-		*copy = DMGTIME;
-		copy -= right;
-	}
-	copy -= x + y * (map_ptr->breite);
-}
-
-// ist dort ein solid?
-int directionNonSolid(int x, int y, char direction){
-	switch(direction){
-		case 'u' :
-			if (y == 0)
-				return(1);
-			else{
-				char c = getc_arr(x,y-1);
-				// returnt 1, wenn solid, und 0 wenn nicht
-				return(!(c == '+' || c == '-' || c == '|' || c == '#'));
-			}
-		case 'd' :
-			//FIXME ARRAY_YMAX durch Array-Hoehe ersetzen
-			if (y == map_ptr->hoehe) 
-				return(1);
-			else {
-				char c = getc_arr(x,y+1);
-				// returnt 1, wenn solid, und 0 wenn nicht
-				return(!(c == '+' || c == '-' || c == '|' || c == '#'));
-			}
-		case 'l' :
-			if (x == 0) 
-				return(1);
-			else {
-				char c = getc_arr(x-1, y);
-				// returnt 1, wenn solid, und 0 wenn nicht
-				return(!(c == '+' || c == '-' || c == '|' || c == '#'));	
-			}
-		case 'r' :
-			//FIXME ARRAY_XMAX durch Array-Breite ersetzen
-			if (x == map_ptr->breite)
-				return(1);
-			else {
-				char c = getc_arr(x+1,y);
-				// returnt 1, wenn solid, und 0 wenn nicht
-				return(!(c == '+' || c == '-' || c == '|' || c == '#'));
-			}
-		default:
-			return(1);
-	}
-}
