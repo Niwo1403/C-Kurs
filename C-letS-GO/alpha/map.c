@@ -319,6 +319,7 @@ char *getLink(){
 				c = getchar();
 			}
 			if (num == 0){
+				maps = anfang;
 				struct txt *tmp = maps;
 				for (;id > 0; id--){
 					tmp = maps->next;
@@ -335,6 +336,7 @@ char *getLink(){
 				char *ret = malloc(7 + maps->length + 1);
 				strcpy(ret, "./Maps/");
 				strcat(ret, maps->name);
+				maps = anfang;
 				struct txt *tmp = maps;
 				for (;id > 0; id--){
 					tmp = maps->next;
