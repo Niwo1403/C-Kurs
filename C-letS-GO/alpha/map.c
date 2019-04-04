@@ -118,7 +118,7 @@ int main(int argc, char **argv){
 		system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
 	}
 	free(timerThread);
-	free(map_ptr->name);
+	free(map_ptr->ptr);
 	free(map_ptr);
 	return(res);
 }
@@ -201,7 +201,7 @@ void start_generating(){
 		c = getchar();
 	}
 	if (b < 4 || b > 200){
-		printf("Bad size, using default.(64)\n")
+		printf("Bad size, using default.(64)\n");
 		b = 64;
 	}
 	printf("Please enter a height:\n> ");
@@ -212,7 +212,7 @@ void start_generating(){
 		c = getchar();
 	}
 	if (h < 4 || h > 100){
-		printf("Bad size, using default.(32)\n")
+		printf("Bad size, using default.(32)\n");
 		h = 32;
 	}
 	c = 'n';
