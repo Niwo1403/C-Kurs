@@ -214,12 +214,13 @@ void start_generating(){
 	if (h < 4 || h > 100){
 		printf("Bad size, using default.(32)\n");
 		h = 32;
+		sleep(2);
 	}
 	c = 'n';
 	while (c == 'n'){
 		generate_map(b, h);
 
-		printf("Height: %d, width: %d\nSpawn A: (%d, %d)\nSpawn B: (%d, %d)\n", map_ptr->hoehe, map_ptr->breite, map_ptr->spawnAx, map_ptr->spawnAy, map_ptr->spawnBx, map_ptr->spawnBy);
+		printf("Height: %d, Width: %d\nSpawn A: (%d, %d)\nSpawn B: (%d, %d)\n", map_ptr->hoehe, map_ptr->breite, map_ptr->spawnAx, map_ptr->spawnAy, map_ptr->spawnBx, map_ptr->spawnBy);
 		for (int i = 0; i < h; i++){
 			for (int j = 0; j < b; j++){
 				printf("%c", *(map_ptr->ptr));
@@ -300,7 +301,6 @@ char *getLink(){
 			maps = maps->next;
 		}
 		maps = anfang;
-		printf("> ");
 		char c;
 		int num = -1;
 		while (1){
@@ -326,7 +326,6 @@ char *getLink(){
 					free(maps);
 					maps = tmp;
 				}
-				free(tmp);
 				return "-generate-";
 			}else if (id >= num && num != -1){
 				num--;
@@ -343,7 +342,6 @@ char *getLink(){
 					free(maps);
 					maps = tmp;
 				}
-				free(tmp);
 				return ret;
 			}
 		}
