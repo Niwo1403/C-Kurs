@@ -11,46 +11,52 @@
 #define MAXRCVLEN 500
 #define PORTNUM 2300
 
-int initClient();
+int initClient(char *ip);
+int closeClient();
 void *clientReciveFunc(void* val);
-void sendMessage(char *msg);
+void sendMessageC(char *msg);
 void reciveMessage(char *msg);
 
 volatile int mysocket;
-
-pthread_t clientRecThread;
-
-int main(int argc, char **argv){
-	int res;
-	char msg[30];
-	
-	res = initClient(argv[1]);
-
-	while(1){
-		scanf("%s", &msg);
+volatile pthread_t clientRecThread;
 
 
-		if(strcmp(msg, "exit") == 0){
-			printf("Exit\n");
-			pthread_cancel(clientRecThread);
-			return 0;
-		}
+//start mit initClient(char *ip)
+//
+//message senden mit sendMessageC(char *msg)
+//
+//reciveMessage(char *msg) füllen mit reaktion zu erhaltenen nachrichten
+//
+//ende mit closeClient()
 
-		sendMessage(msg);
-	}
 
-	return 0;
-}
 
 int initClient(char *ip){
 	int res;
 	res = pthread_create(&clientRecThread, NULL, &clientReciveFunc, ip);
 
 	if(res != 0){
-		printf("Thread Fehler");
+		//FIXME exit with error
 		return -1;
 	}
 	
+	return 0;
+}
+
+int closeClient(){
+
+	int res = close(mysocket);
+	if(res != 0){
+		//FIXME exit with error
+		return -1;
+	}
+		
+	res = pthread_cancel(clientRecThread);
+	if(res != 0){
+		//FIXME exit with error
+		return -1;
+	}
+
 	return 0;
 }   
 
@@ -64,23 +70,23 @@ void *clientReciveFunc(void* val){
 
 	memset(&dest, 0, sizeof(dest));
 	dest.sin_family = AF_INET;
-	//dest.sin_addr.s_addr = inet_addr(val);
 	dest.sin_addr.s_addr = inet_addr(val);
-	//dest.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-	
 	dest.sin_port = htons(PORTNUM);
 
-	connect(mysocket, (struct sockaddr *)&dest, sizeof(struct sockaddr_in));
+	int res = connect(mysocket, (struct sockaddr *)&dest, sizeof(struct sockaddr_in));
 
+	if(res != 0){
+		//FIXME exit with error
+		closeClient();
+		return NULL;
+	}
 
 	while(1){
 		
 		len = read(mysocket, buffer, MAXRCVLEN);
 		if(len > 0){
 			buffer[len] = '\0';
-
 			reciveMessage(buffer);
-			//printf("Recived %s (%d bytes).\n", buffer, len);
 		}
 		usleep(500000);
 	}
@@ -89,17 +95,13 @@ void *clientReciveFunc(void* val){
 }
 
 
-void sendMessage(char *msg){
+void sendMessageC(char *msg){
 	send(mysocket, msg, strlen(msg), 0);
 }
 
 
-void reciveMessage(char *msg){
+void reciveMessageC(char *msg){
 	//was soll passieren, wenn man eine nachricht empfängt
-	printf("%s\n", msg);
 
 }
-
-
-
 
