@@ -5,45 +5,39 @@
 // 'l' -> left
 // 'r' -> right
 // alles ausserhalb der map wird als solid betrachtet
-int directionNonSolid(array, int x, int y, char direction){
+int directionNonSolid(&MAP_ARRAY, int x, int y, char direction){
 	switch(direction)
 		case 'u' :
 			if (y == 0) {
 				return (1)
 			} else {
-				return(array[x+((y-1)*width)]);
+				return(*MAP_ARRAY[x+((y-1)*width)]);
 			}
 		case 'd' :
 			//FIXME ARRAY_YMAX durch Array-Hoehe ersetzen
 			if (y == ARRAY_YMAX) {
 				return (1)
 			} else {
-				return(array[x+((y+1)*width)]);
+				return(*MAP_ARRAY[x+((y+1)*width)]);
 			}
 		case 'l' :
 			if (x == 0) {
 				return (1)
 			} else {
-				return(array[x-1+(y*width)]);
+				return(*MAP_ARRAY[x-1+(y*width)]);
 			}
 		case 'r' :
 			//FIXME ARRAY_XMAX durch Array-Breite ersetzen
 			if (x == ARRAY_XMAX) {
 				return (1)
 			} else {
-				return(array[x+1+(y*width)]);
+				return(*MAP_ARRAY[x+1+(y*width)]);
 			}
 }
 
 //FIXME
 ARRAY[width*height];
 
-// fuer DAMAGE_ARRAY
-void decrementMap(int ARRAY[]) {
-	for(int i = 0; i < sizeof(ARRAY)/sizeof(ARRAY[0]); i++) {
-		ARRAY[i]--;
-	}
-}
 
 struct player {
 	int x;				// Position auf der map
@@ -73,10 +67,10 @@ const int bombsPerPlayer;
 const int maxBombCount = bombsPerPlayer * playerCount;
 
 // Liste von Spielerstructs
-struct player players[playerCount];
+typedef struct player players[playerCount];
 
 // Liste von Bombenstructs
-struct bomb bombs[maxBombCount*playerCount];
+typedef struct bomb bombs[maxBombCount*playerCount];
 
 // Spieler an Spawnpunkten initialisieren
 void initPlayers(int playerCount, /*FIXME*/ SPAWNPOINTS) {
@@ -134,7 +128,7 @@ int plantBomb(int playerIndex) {
 }
 
 // Bombentimer dekrementieren und Bomben explodieren lassen
-void tickBombs() {
+void tickBombs(bomb bombs) {
 	for (int i = 0; i < maxBombCount; i++) {
 		// wenn der Bombenslot aktiv ist
 		if (bombs[i].isActive) {
@@ -150,9 +144,11 @@ void tickBombs() {
 
 // Spieler Bomben geben, falls die maximale Bombenanzahl nicht erreicht ist
 // alle paar Sekunden aufrufen
-int giveBomb(int playerIndex) {
-	if (players[playerIndex].bombs < bombsPerPlayer) {
-		players[playerIndex].bombs++;
+int giveBombs(player &players) {
+	for (int i = 0; i < playerCount; i++) {
+		if (players[i].bombs < bombsPerPlayer) {
+			players[i].bombs++;
+		}
 	}
 }
 
@@ -163,11 +159,18 @@ void explodeBomb(bombIndex) {
 // Schadensarray mit Nullen initialisieren
 int DAMAGE_ARRAY[width*height] = {0};
 
+// zum dekrementieren nach ticks
+void decrementMap(int ARRAY[]) {
+	for(int i = 0; i < sizeof(ARRAY)/sizeof(ARRAY[0]); i++) {
+		ARRAY[i]--;
+	}
+}
+
 // arbeitet auf dem Damagearray
 // 'time' ist die Zeit die die Explosion auf der map bleiben soll
 // (und Schaden austeilen)
 // 'radius' beschreibt den Explosionsradius 
-void explosion(int x, int y, int time, int radius){
+void explosion(&MAP_ARRAY, &DAMAGE_ARRAY, int x, int y, int time, int radius){
 	DAMAGE_ARRAY[x+(y*width)] = time;
 	int UP = 0;
 	int DOWN = 0;
@@ -175,40 +178,38 @@ void explosion(int x, int y, int time, int radius){
 	int RIGHT = 0;
 	// expandiere Explosion solange der naechste Schritt kein solid ist
 	// (bis radius erreich ist)
-	while (!directionNonSolid(DAMAGE_ARRAY, x, y, 'u') && UP < radius) {
+	while (!directionNonSolid(MAP_ARRAY, x, y, 'u') && UP < radius) {
 		UP++;
-		DAMAGE_ARRAY[x+((y-UP)*width)] = time;
+		*DAMAGE_ARRAY[x+((y-UP)*width)] = time;
 	}
 	while (!directionNonSolid(DAMAGE_ARRAY, x, y, 'd') && DOWN < radius) {
 		DOWN++;
-		DAMAGE_ARRAY[x+((y+DOWN)*width)] = time;
+		*DAMAGE_ARRAY[x+((y+DOWN)*width)] = time;
 	}
 	while (!directionNonSolid(DAMAGE_ARRAY, x, y, 'l') && LEFT < radius) {
 		LEFT++;
-		DAMAGE_ARRAY[x-LEFT+(y*width)] = time;
+		*DAMAGE_ARRAY[x-LEFT+(y*width)] = time;
 	}
 	while (!directionNonSolid(DAMAGE_ARRAY, x, y, 'r') && RIGHT < radius) {
 		RIGHT++;
-		DAMAGE_ARRAY[x+RIGHT+(y*width)] = time;
+		*DAMAGE_ARRAY[x+RIGHT+(y*width)] = time;
 	}
 }
 
-/* 
+
 // pruefe und toete Spieler
 // gibt Anzahl lebendiger Spieler zurueck
-int checkPlayerKill(void) {
-	int alivePlayerCount = 0;
+int checkPlayerKill(player &players, &DAMAGE_ARRAY) {
 	for (int i = 0; i < playerCount; i++) {
 		if ((!players[i].isDead || players[i].isActive) {
-			if (DAMAGE_ARRAY[players[i].x + (players[i].y * WIDTH)]) {
+			if (*DAMAGE_ARRAY[players[i].x + (players[i].y * WIDTH)]) {
 				players[i].isDead = 1;
 			}
-		alivePlayerCount++:
 		}
 	}
-	return (alivePlayerCount);
+	return (0);
 }
-*/
+
 
 /*--------------------------------------------------------------------------*/
 
