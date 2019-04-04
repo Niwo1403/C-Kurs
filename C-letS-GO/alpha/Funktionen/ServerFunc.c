@@ -145,6 +145,8 @@ void *serverReciveFunc(void* val){
 				}
 			}
 			
+			userConnect(new_socket);
+
 		}
 
 		for(i = 0; i<MAX_CLIENTS; i++){
@@ -185,4 +187,12 @@ void userDisconnect(int ClientID){
 	//was soll beim Disconnect passieren
 
 }
+
+
+void userConnect(int ClientID){
+	//was soll bei neuem Connect passieren
+
+}
+
+
  
