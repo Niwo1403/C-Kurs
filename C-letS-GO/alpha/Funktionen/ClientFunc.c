@@ -64,6 +64,7 @@ void *clientReciveFunc(void* val){
 
 	memset(&dest, 0, sizeof(dest));
 	dest.sin_family = AF_INET;
+	//dest.sin_addr.s_addr = inet_addr(val);
 	dest.sin_addr.s_addr = inet_addr(val);
 	//dest.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	
