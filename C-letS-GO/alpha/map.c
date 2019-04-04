@@ -189,9 +189,9 @@ void start_generating(){
 			printf("\n");
 		}
 		(map_ptr->ptr) -= h*b;
-		printf("\n Map übernehmen?\n> ");
+		printf("\n Map übernehmen? [j] für ja, [n] für nein\n> ");
 		c = getchar();
-		while (c != 'n' && c != 'j'){
+		while (c != 'n' && c != 'j' && c !='y'){
 			c = getchar();
 		}
 	}
@@ -416,8 +416,8 @@ int startmenu(void){
 				return 2;
 			case '3':
 				printf("How to play:\n");
-				printf("\t- player 1 moves with [W], [A], [S], [D] and places bombs with [Enter]\n");
-				printf("\t- player 2 moves with [ARROW_UP], [ARROW_LEFT], [ARROW_DOWN], [ARROW_RIGHT] and places bombs with [Space]\n");        
+				printf("\t- player 1 moves with [ARROW_UP], [ARROW_LEFT], [ARROW_DOWN], [ARROW_RIGHT] and places bombs with [Enter]\n");
+				printf("\t- player 2 moves with [W], [A], [S], [D] and places bombs with [Space]\n");
         		printf("Rules:\n");
         		printf("\t- One game consists of several rounds\n");
         		printf("\t- A round will end when one player dies\n");
