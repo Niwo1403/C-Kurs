@@ -193,6 +193,7 @@ void explosion(int x, int y, int time, int radius){
 	}
 }
 
+/* 
 // pruefe und toete Spieler
 // gibt Anzahl lebendiger Spieler zurueck
 int checkPlayerKill(void) {
@@ -207,8 +208,31 @@ int checkPlayerKill(void) {
 	}
 	return (alivePlayerCount);
 }
+*/
 
-// 
-int checkPlayerWin(void) {
-	
+/*--------------------------------------------------------------------------*/
+
+// Gewinner (1: Spieler 1, 2: Spieler 2, 3: beide tot / keiner )
+int winner = 0;
+
+// prueft ob das Spiel vorbei ist bzw. jemand tot ist (fuer den gameloop)
+int checkGameOver(player players) {
+	if (!players[1].isDead || !players[2].isDead) {
+		return (1);
+	} else {
+		return (0);
+	}
 }
+
+int checkWhoWon(player players) {
+	if (players[1].isDead && players[2].isDead){
+		return (0);
+	} else if (players[2].isDead) {
+		return (1);
+	} else if (players[1].isDead) {
+		return (2);
+	} else {
+		return (-1); // falls etwas unvorhergesehenes passiert
+	}
+}
+
