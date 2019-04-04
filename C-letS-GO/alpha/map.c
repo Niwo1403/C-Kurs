@@ -167,14 +167,14 @@ void generate_map(int breite, int hoehe){
 void start_generating(){
 	int b = 0, h = 0;
 	char c = 'n';
-	printf("Bitte die Breite eingeben:\n> ");
+	printf("Please enter a width:\n> ");
 	c = getchar();
 	while (c != '\n'){
 		b *= 10;
 		b += c - '0';
 		c = getchar();
 	}
-	printf("Bitte die Höhe eingeben:\n> ");
+	printf("Please enter a height:\n> ");
 	c = getchar();
 	while (c != '\n'){
 		h *= 10;
@@ -185,7 +185,7 @@ void start_generating(){
 	while (c == 'n'){
 		generate_map(b, h);
 
-		printf("Höhe: %d, Breite: %d\nSpawn A: (%d, %d)\nSpawn B: (%d, %d)\n", map_ptr->hoehe, map_ptr->breite, map_ptr->spawnAx, map_ptr->spawnAy, map_ptr->spawnBx, map_ptr->spawnBy);
+		printf("Height: %d, width: %d\nSpawn A: (%d, %d)\nSpawn B: (%d, %d)\n", map_ptr->hoehe, map_ptr->breite, map_ptr->spawnAx, map_ptr->spawnAy, map_ptr->spawnBx, map_ptr->spawnBy);
 		for (int i = 0; i < h; i++){
 			for (int j = 0; j < b; j++){
 				printf("%c", *(map_ptr->ptr));
@@ -194,7 +194,7 @@ void start_generating(){
 			printf("\n");
 		}
 		(map_ptr->ptr) -= h*b;
-		printf("\n Map übernehmen? [j] für ja, [n] für nein\n> ");
+		printf("\n Play this map? [y] for yes, [n] for no (and generate new map)\n> ");
 		c = getchar();
 		while (c != 'n' && c != 'j' && c !='y'){
 			c = getchar();
