@@ -17,12 +17,12 @@
 #include <time.h>
 
 // DEFINES
-#define maxBombCount 6   // Bomben_pro_Spieler * Spieler 
-#define RADIUS 6
+//#define maxBombCount 6   // Bomben_pro_Spieler * Spieler 
+//#define RADIUS 6
 
 // wir gehen davon aus dass 200 = 2s ist
-#define EXPLODETIME 3
-#define DMGTIME 2
+//#define EXPLODETIME 3
+//#define DMGTIME 2
 
 		// Farben
 #define RED "\033[31m"
@@ -73,6 +73,10 @@ static struct map *map_ptr;
 int zustand = 0, fs;
 FILE *log = NULL;
 int winner = -1;
+int EXPLODETIME = 3;
+int DMGTIME = 2;
+int maxBombCount = 6;
+int RADIUS = 6;
 
 // FUNKTIONEN deklarationen
 void show_anim(int);
@@ -102,6 +106,8 @@ int findFreeBombSlot(bomb *bomb_Array);
 void tickBombs(int *dmg_Array, bomb *bomb_Array);
 void explosion(int *dmg_Array, bomb *bomb_Array);
 int directionNonSolid(int x, int y, char direction);
+void read_config();
+void read_var(FILE *, int *);
 
 int main(int argc, char **argv){
 	fs = fullscreen(argc, argv);
@@ -371,6 +377,7 @@ int init(){
 	log = fopen("/tmp/spiel.log", "w");
 	// Animation
 	show_anim(15);
+	read_config();
 	// Startmenue
 	zustand = startmenu();
 	if (zustand == 3){
@@ -384,6 +391,35 @@ int init(){
 	map_ptr = malloc(sizeof (struct map));
 	read_map(map_ptr, getLink());
 	return 0;
+
+}
+
+void read_var(FILE *file, int *adr){
+	char c = fgetc(file);
+	while (c != ' '){
+		c = fgetc(file);
+	}
+	c = fgetc(file);
+	if (c <= '9' && c >= '0'){
+		*adr = 0;
+	}
+	while (c <= '9' && c >= '0'){
+		*adr *= 10;
+		*adr += c - '0';
+		c = fgetc(file);
+	}
+}
+
+void read_config(){
+	FILE *file = fopen("./config.txt", "r");
+	if (file == NULL){
+		printf("---Doesn't found config.txt, using default values---\n");
+		return;
+	}
+	read_var(file, &EXPLODETIME);
+	read_var(file, &DMGTIME);
+	read_var(file, &maxBombCount);
+	read_var(file, &RADIUS);
 }
 
 //returns the char at (x, y)

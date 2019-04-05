@@ -1,0 +1,4 @@
+EXPLODETIME: 3
+DMGTIME: 2
+maxBombCount: 6
+RADIUS: 6
