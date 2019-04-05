@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <dirent.h>
-#include <pthread.h>
 #include <time.h>
 
 // DEFINES
@@ -22,7 +21,7 @@
 #define RADIUS 6
 
 // wir gehen davon aus dass 200 = 2s ist
-#define EXPLODETIME 4
+#define EXPLODETIME 3
 #define DMGTIME 2
 
 		// Farben
@@ -112,30 +111,25 @@ int main(int argc, char **argv){
 	}
 	if (init())//fürt benötigte Code aus, der keine Rückgabewerte hat
 		return 0;
-	//Thread (Ticks) erstellen
-	pthread_t *timerThread = malloc(sizeof(pthread_t));
-	int res;
-	res = pthread_create(timerThread, NULL, &tick, NULL);
-	if(res != 0){
-		printf("Thread Fehler");
-		return -1;
-	}
-
+	
 	// res speichert den eigentlichen return-Wert
+	int res;
 	res = createTermbox();
 	zustand = 3;//beendet den Loop in tick() und damit den Thread
 	show_endanim();
 	if(winner == 0)
-		printf(BOLD YELLOW "\nUnentschieden!\n\n" RESET);
+		// Unentschieden
+		printf(BOLD YELLOW "\nDrawn game!\n\n" RESET);
 	else if(winner == 1 || winner == 2)
-		printf(BOLD GREEN "\nPlayer %d hat gewonnen!\n\n" RESET, winner);
+		// Einer gewinnt
+		printf(BOLD GREEN "\nPlayer %d wins!\n\n" RESET, winner);
 	else 
-		printf(BOLD RED "\nSpiel abgebrochen!\n\n" RESET);
+		// Spiel abgebrochen
+		printf(BOLD RED "\nGame canceled!\n\n" RESET);
 
 	if (fs){
 		system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
 	}
-	free(timerThread);
 	free(map_ptr->ptr);
 	free(map_ptr);
 	return(res);
@@ -310,7 +304,9 @@ char *getLink(){
 		}
 		
 		maps = anfang;
-		printf("Welche Map soll geladen werden?\n\t-[0]Map generieren\n");
+		// printf("Welche Map soll geladen werden?\n\t-[0]Map generieren\n");
+		printf(BOLD YELLOW "Choose map:\n" RESET);
+		printf("\t-[0]generate random map\n");
 		for (int i = 0; i < id; i++){
 			char *tmp = malloc(maps->length - 3);
 			strncpy(tmp, maps->name, maps->length - 4);
@@ -445,6 +441,17 @@ int check(int direct, player *p){
 
     		// alles gut
             (p->x)--;
+
+            // noch ein Schritt?
+			c = getc_arr(p->x -1 , p->y);
+            fprintf(log, "Zeichen links %c (%d)\n", c, c);
+            fflush(log);
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
+    			return 0;
+
+    		// alles gut
+            (p->x)--;
+
             break;
         case TB_KEY_ARROW_RIGHT:
             // border?
@@ -453,6 +460,16 @@ int check(int direct, player *p){
             fflush(log);
     		if (c == '+' || c == '-' || c == '|' || c == '#')
     			return 1;
+
+    		// alles gut
+            (p->x)++;
+
+            // noch ein Schritt?
+            c = getc_arr(p->x +1, p->y);
+            fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
+            fflush(log);
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
+    			return 0;
 
     		// alles gut
             (p->x)++;
@@ -507,6 +524,17 @@ int check2(int direct, player *p2){
 
     		// alles gut
             (p2->x)--;
+
+            // noch ein Schritt?
+            c = getc_arr(p2->x -1 , p2->y);
+            fprintf(log, "Zeichen links %c (%d)\n", c, c);
+            fflush(log);
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
+    			return 0;
+
+    		// alles gut
+            (p2->x)--;
+
             break;
         case 'd':
             // border?
@@ -515,6 +543,16 @@ int check2(int direct, player *p2){
             fflush(log);
     		if (c == '+' || c == '-' || c == '|' || c == '#')
     			return 1;
+
+    		// alles gut
+            (p2->x)++;
+
+            // noch ein Schritt?
+            c = getc_arr(p2->x +1, p2->y);
+            fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
+            fflush(log);
+    		if (c == '+' || c == '-' || c == '|' || c == '#')
+    			return 0;
 
     		// alles gut
             (p2->x)++;
@@ -566,7 +604,7 @@ int startmenu(void){
 				//printf("Bombs can destroy the destructible blocks (x)\n");
         		printf("\t- Do not walk into the explosions!\n");
 				printf(" \n");
-				printf("If you want to play now you can now press [1] or [2] to start the game or [4] to quit the game\n");
+				printf("If you want to play now you can now press [1] or [2] to start the game or [3] to quit the game\n");
 				break;
 			case '3':
 				return 3;
@@ -844,7 +882,7 @@ int createTermbox(){
 		if(winner != -1){
 			// tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg, map_ptr->hg);
 			// tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg, map_ptr->hg);
-			sleep(1);
+			sleep(2);
 		}
 		
 	} // while
