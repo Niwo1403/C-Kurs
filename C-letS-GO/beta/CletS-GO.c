@@ -17,7 +17,7 @@
 #include <time.h>
 
 // DEFINES
-//#define maxBombCount 6   // Bomben_pro_Spieler * Spieler 
+//#define maxBombCount 3   // Bomben_pro_Spieler
 //#define RADIUS 6
 
 // wir gehen davon aus dass 200 = 2s ist
@@ -75,8 +75,9 @@ FILE *log = NULL;
 int winner = -1;
 int EXPLODETIME = 3;
 int DMGTIME = 2;
-int maxBombCount = 6;
+int maxBombCount = 3;
 int RADIUS = 6;
+int maxLeben = 3;
 
 // FUNKTIONEN deklarationen
 void show_anim(int);
@@ -416,12 +417,15 @@ void read_config(){
 	FILE *file = fopen("./config.txt", "r");
 	if (file == NULL){
 		printf("---Doesn't found config.txt, using default values---\n");
+		fclose(file);
 		return;
 	}
 	read_var(file, &EXPLODETIME);
 	read_var(file, &DMGTIME);
 	read_var(file, &maxBombCount);
 	read_var(file, &RADIUS);
+	read_var(file, &maxLeben);
+	fclose(file);
 }
 
 //returns the char at (x, y)
@@ -685,16 +689,16 @@ int createTermbox(){
 	player1->x = map_ptr->spawnAx;
 	player1->y = map_ptr->spawnAy;
 	player1->ch = '1';
-	player1->bombs = 3;
-	player1->isDead = 0;
+	player1->bombs = maxBombCount;
+	player1->isDead = maxLeben;
 	player1->isActive = 0;
 
 	player *player2 = malloc(sizeof(player));
 	player2->x = map_ptr->spawnBx;
 	player2->y = map_ptr->spawnBy;
 	player2->ch = '2';
-	player2->bombs = 3;
-	player2->isDead = 0;
+	player2->bombs = maxBombCount;
+	player2->isDead = maxLeben;
 	player2->isActive = 0;
 
 	
@@ -703,8 +707,8 @@ int createTermbox(){
 	fflush(log);	
 
 	// BombenArray, DAMAGEArray
-	bomb bomb_Array[maxBombCount];
-	for (int i = 0; i < maxBombCount; i++) {
+	bomb bomb_Array[maxBombCount*2];
+	for (int i = 0; i < maxBombCount*2; i++) {
 		bomb_Array[i].x = 0;
 		bomb_Array[i].y = 0;
 		bomb_Array[i].radius = 0;
@@ -745,7 +749,7 @@ int createTermbox(){
 	clock_t start_bomb = clock();
 	clock_t end_bomb;
 
-	while(winner == -1){	
+	while (winner == -1){	
 
 		struct tb_event event;
 		int tb_input = tb_peek_event(&event,5);		// welche Art von Input (Maus, Tastatur)
@@ -843,7 +847,7 @@ int createTermbox(){
 
 
 			// ALLE BOMBEN PRINTEN
-			for(int i = 0; i < maxBombCount; i++){
+			for(int i = 0; i < maxBombCount*2; i++){
 				if(bomb_Array[i].isActive)
 					// BOMBE ROT (VG)
 					tb_change_cell(bomb_Array[i].x, bomb_Array[i].y,'o',TB_BLACK,map_ptr->hg);
@@ -896,25 +900,47 @@ int createTermbox(){
 
 		// Player 1 tot?
 		dmg_Array += player1_i;
-		if(0 < *dmg_Array)
-			player1->isDead = 1;
+		if(0 < *dmg_Array){
+			player1->isDead--;
+			player1->x = map_ptr->spawnAx;
+			player1->y = map_ptr->spawnAy;
+			for (int i = 0; 2 > i; i++){
+				usleep(250000);
+				tb_change_cell(player1->x, player1->y, 'X', TB_BLACK, map_ptr->hg);
+				tb_present();
+				usleep(250000);
+				tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg, map_ptr->hg);
+				tb_present();
+			}
+		}
 		dmg_Array -= player1_i;
 
 		// Player2 tot?
 		dmg_Array += player2_i;
-		if(0 < *dmg_Array)
-			player2->isDead = 1;
+		if(0 < *dmg_Array){
+			player2->isDead--;
+			player2->x = map_ptr->spawnBx;
+			player2->y = map_ptr->spawnBy;
+			for (int i = 0; 2 > i; i++){
+				usleep(250000);
+				tb_change_cell(player2->x, player2->y, 'X', TB_BLACK, map_ptr->hg);
+				tb_present();
+				usleep(250000);
+				tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg, map_ptr->hg);
+				tb_present();
+			}	
+		}
 		dmg_Array -= player2_i;
 
 
 		// Gewinner?
-		if(player1->isDead){
-			if(player2->isDead)
+		if(player1->isDead == 0){
+			if(player2->isDead == 0)
 				winner = 0;		// unentschieden
 			else
 				winner = 2;		// 1 gewinnt
 		}
-		else if(player2->isDead)
+		else if(player2->isDead == 0)
 			winner = 1;			// 2 gewinnt
 
 		if(winner != -1){
@@ -954,7 +980,7 @@ void plantBomb(player *p, bomb *bomb_Array) {
 	}
 }
 int findFreeBombSlot(bomb *bomb_Array) {
-	for (int i = 0; i < maxBombCount; i++) {
+	for (int i = 0; i < maxBombCount*2; i++) {
 		bomb_Array += i;
 		if (! bomb_Array->isActive) {
 			bomb_Array -= i;
@@ -969,7 +995,7 @@ int findFreeBombSlot(bomb *bomb_Array) {
 
 // Zaehlt den TImer fuer Bombe runter
 void tickBombs(int *dmg_Array, bomb *bomb_Array) {
-	for (int i = 0; i < maxBombCount; i++){
+	for (int i = 0; i < maxBombCount*2; i++){
 		// Index hin
 		bomb_Array += i;
 		// wenn der Bombenslot aktiv ist
@@ -1284,3 +1310,8 @@ void show_endanim(){
 	}
 
 } 
+
+/*
+Rest Leben ausgabe
+Vor expl. gelb färben
+*/

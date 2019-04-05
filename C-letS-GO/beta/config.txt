@@ -1,0 +1,5 @@
+EXPLODETIME: 3
+DMGTIME: 2
+maxBombCount: 3
+RADIUS: 6
+maxLeben: 3
