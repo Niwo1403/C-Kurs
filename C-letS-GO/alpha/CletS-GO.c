@@ -250,6 +250,8 @@ void start_generating(){
 		printf("\n Play this map? [y] for yes, [n] for no (and generate new map)\n> ");
 		c = getchar();
 		while (c != 'n' && c != 'j' && c !='y'){
+			if (c == '\n')
+				printf("> ");
 			c = getchar();
 		}
 	}
