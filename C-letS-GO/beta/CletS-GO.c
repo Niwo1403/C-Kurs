@@ -111,7 +111,6 @@ int main(int argc, char **argv){
 	// res speichert den eigentlichen return-Wert
 	int res;
 	res = createTermbox();
-	//zustand = 4;
 	show_endanim();
 	if(winner == 0){
 		// Unentschieden
@@ -447,7 +446,8 @@ char *getLink(){
 	anfang = maps;
 
 	system("clear");
-	show_anim(0);
+	usleep(1000);
+	show_anim(10);
 
 	DIR *dir;
 	struct dirent *dirptr;
@@ -1513,6 +1513,7 @@ void read_map(struct map *ptr, char *str){
 //Animationen:
 void show_anim(int time) {
 	system("clear");
+	usleep(100000);
 	char clets[9][68] = {
 	"+-----------------------------------------------------------------+",
 	"|   #######         ##                       ##        #######    |",
