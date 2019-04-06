@@ -55,12 +55,13 @@ static struct map *map_ptr;
 int zustand = 0, fs;
 FILE *log = NULL;
 int winner = -1;
-int Punktestand = 0;
+int PUNKTESTAND = 0;
 int EXPLODETIME = 3;
 int DMGTIME = 2;
-int maxBombCount = 3;
-int RADIUS = 6;
-int maxLeben = 3;
+int MAXBOMBCOUNT = 3;
+int RADIUS = 5;
+int MAXLEBEN = 3;
+int SCHRITTWEITE = 2;
 int *msg_log;
 
 // FUNKTIONEN deklarationen
@@ -77,7 +78,6 @@ void read_map(struct map *, char *);
 uint16_t hex_to_int(char);
 char getc_arr(int, int);
 void show_endanim();
-void *tick(void *);
 char *getLink();
 int init();
 int fullscreen(int, char **);
@@ -94,6 +94,10 @@ void read_config();
 void read_var(FILE *, int *);
 void print_msg(char *, int);
 void print_dead_msg(int);
+void options();
+void write_config();
+void write_str(FILE *, char *);
+int i_len(int);
 
 int main(int argc, char **argv){
 	fs = fullscreen(argc, argv);
@@ -107,19 +111,19 @@ int main(int argc, char **argv){
 	// res speichert den eigentlichen return-Wert
 	int res;
 	res = createTermbox();
-	zustand = 3;//beendet den Loop in tick() und damit den Thread
+	//zustand = 4;
 	show_endanim();
 	if(winner == 0){
 		// Unentschieden
-		printf(BOLD YELLOW "\nDrawn game!\nLives left:\n\tplayer1: %d\n\tplayer2: %d\n\n" RESET, (int) Punktestand / (maxLeben+1), Punktestand % (maxLeben+1));
+		printf(BOLD YELLOW "\nDrawn game!\nLives left:\n\tplayer1: %d\n\tplayer2: %d\n\n" RESET, (int) PUNKTESTAND / (MAXLEBEN+1), PUNKTESTAND % (MAXLEBEN+1));
 	}
 	else if(winner == 1 || winner == 2){
 		// Einer gewinnt
-		printf(BOLD GREEN "\nPlayer %d wins with %d lives left!\n\n" RESET, winner, Punktestand);
+		printf(BOLD GREEN "\nPlayer %d wins with %d lives left!\n\n" RESET, winner, PUNKTESTAND);
 	}
 	else{
 		// Spiel abgebrochen
-		printf(BOLD RED "\nGame canceled!\nLives left:\n\tplayer1: %d\n\tplayer2: %d\n\n" RESET, (int) Punktestand / (maxLeben+1), Punktestand % (maxLeben+1));
+		printf(BOLD RED "\nGame canceled!\nLives left:\n\tplayer1: %d\n\tplayer2: %d\n\n" RESET, (int) PUNKTESTAND / (MAXLEBEN+1), PUNKTESTAND % (MAXLEBEN+1));
 	}
 
 	if (fs){
@@ -131,14 +135,167 @@ int main(int argc, char **argv){
 }
 
 
-void *tick(void *inp){
-	while (zustand != 3){
-		//do something
-		usleep(1000*10);
+//Asks for each Global Var for value
+void set_options(){
+	printf("Current settings(press Enter to kepp current value):\n");
+	int temp = -1;
+	char c = getchar();
+	
+	printf("\tExplodetime(%d): ", EXPLODETIME);
+	c = getchar();
+	while (c <= '9' && c >= '0'){
+		if (temp == -1){
+			temp = 0;
+		}
+		temp *= 10;
+		temp += c - '0';
+		c = getchar();
 	}
-	return inp;
+	while (c != '\n'){
+		c = getchar();
+	}
+	if (temp != -1){
+		EXPLODETIME = temp;
+		temp = -1;
+	}
+
+	printf("\tDemagetime(%d): ", DMGTIME);
+	c = getchar();
+	while (c <= '9' && c >= '0'){
+		if (temp == -1){
+			temp = 0;
+		}
+		temp *= 10;
+		temp += c - '0';
+		c = getchar();
+	}
+	while (c != '\n'){
+		c = getchar();
+	}
+	if (temp != -1){
+		DMGTIME = temp;
+		temp = -1;
+	}
+
+	printf("\tMax-Bomb-Count(%d): ", MAXBOMBCOUNT);
+	c = getchar();
+	while (c <= '9' && c >= '0'){
+		if (temp == -1){
+			temp = 0;
+		}
+		temp *= 10;
+		temp += c - '0';
+		c = getchar();
+	}
+	while (c != '\n'){
+		c = getchar();
+	}
+	if (temp != -1){
+		MAXBOMBCOUNT = temp;
+		temp = -1;
+	}
+
+	printf("\tExplode-Radius(%d): ", RADIUS);
+	c = getchar();
+	while (c <= '9' && c >= '0'){
+		if (temp == -1){
+			temp = 0;
+		}
+		temp *= 10;
+		temp += c - '0';
+		c = getchar();
+	}
+	while (c != '\n'){
+		c = getchar();
+	}
+	if (temp != -1){
+		RADIUS = temp;
+		temp = -1;
+	}
+	
+	printf("\tLives(%d): ", MAXLEBEN);
+	c = getchar();
+	while (c <= '9' && c >= '0'){
+		if (temp == -1){
+			temp = 0;
+		}
+		temp *= 10;
+		temp += c - '0';
+		c = getchar();
+	}
+	while (c != '\n'){
+		c = getchar();
+	}
+	if (temp != -1){
+		MAXLEBEN = temp;
+		temp = -1;
+	}
+	
+	printf("\tWalked Fields(%d): ", SCHRITTWEITE);
+	c = getchar();
+	while (c <= '9' && c >= '0'){
+		if (temp == -1){
+			temp = 0;
+		}
+		temp *= 10;
+		temp += c - '0';
+		c = getchar();
+	}
+	while (c != '\n'){
+		c = getchar();
+	}
+	if (temp != -1){
+		SCHRITTWEITE = temp;
+		temp = -1;
+	}
+	printf("Option editing done.\n> "); 
 }
 
+void options(){
+	FILE *file = fopen("./config.txt", "r");
+	if (file != NULL){
+		read_var(file, &EXPLODETIME);
+		read_var(file, &DMGTIME);
+		read_var(file, &MAXBOMBCOUNT);
+		read_var(file, &RADIUS);
+		read_var(file, &MAXLEBEN);
+		read_var(file, &SCHRITTWEITE);
+	}
+	fclose(file);
+
+	set_options();
+	
+	write_config();
+	usleep(250000);
+}
+
+void write_str(FILE *file, char *str){
+	int count = 0;
+	while (*str != '\0'){
+		count++;
+		fputc(*str, file);
+		str++;
+	}
+	str -= count;
+}
+
+int i_len(int num){
+	int ret = 1;
+	for (; num > 9; num /= 10){
+		ret++;
+	}
+	return ret;
+}
+
+void write_config(){//writes current config values to config.txt
+	FILE *file = fopen("./config.txt", "w");
+	char *ptr = malloc(i_len(EXPLODETIME)+i_len(DMGTIME)+i_len(MAXBOMBCOUNT)+i_len(RADIUS)+i_len(MAXLEBEN)+i_len(SCHRITTWEITE) + 5 + 68 + 1);
+	
+	sprintf(ptr, "EXPLODETIME: %d\nDMGTIME: %d\nMAXBOMBCOUNT: %d\nRADIUS: %d\nMAXLEBEN: %d\nSCHRITTWEITE: %d\n", EXPLODETIME, DMGTIME, MAXBOMBCOUNT, RADIUS, MAXLEBEN, SCHRITTWEITE);
+	write_str(file, ptr);
+	free(ptr);
+	fclose(file);
+}
 
 void generate_map(int breite, int hoehe){
 	map_ptr->hoehe = hoehe;
@@ -236,9 +393,9 @@ void start_generating(){
 			printf("\n");
 		}
 		(map_ptr->ptr) -= h*b;
-		printf("\n Play this map? [y] for yes, [n] for no (and generate new map)\n> ");
+		printf("\n Play this map? [y] for yes, [n] for no (and generate new map) or [o] to use map and edit options non permanently.\n> ");
 		c = getchar();
-		while (c != 'n' && c != 'j' && c !='y'){
+		while (c != 'n' && c != 'j' && c !='y' && c !='o'){
 			if (c == '\n')
 				printf("> ");
 			c = getchar();
@@ -246,6 +403,10 @@ void start_generating(){
 		if (c == 'n'){
 			getchar();
 		}
+	}
+	//edit configs for map 
+	if (c == 'o'){
+		set_options();
 	}
 }
 
@@ -372,11 +533,11 @@ int init(){
 	// Animation
 	show_anim(15);
 	read_config();
-	msg_log = malloc(sizeof (int) * (maxLeben *2 + 1));
+	msg_log = malloc(sizeof (int) * (MAXLEBEN *2 + 1));
 	*msg_log = 0; //0 terminiert
 	// Startmenue
 	zustand = startmenu();
-	if (zustand == 3){
+	if (zustand == 4){
 		show_endanim();
 		if (fs){
 			system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
@@ -392,6 +553,13 @@ int init(){
 void read_var(FILE *file, int *adr){
 	char c = fgetc(file);
 	while (c != ' '){
+		if (c == EOF){
+			printf("Corrupted config.txt file. Repair file?(y/n)\n");
+			c = getchar();
+			if (c == 'y' || c == 'j')
+				write_config();
+			exit(1);
+		}
 		c = fgetc(file);
 	}
 	c = fgetc(file);
@@ -408,15 +576,16 @@ void read_var(FILE *file, int *adr){
 void read_config(){
 	FILE *file = fopen("./config.txt", "r");
 	if (file == NULL){
-		printf("---Doesn't found config.txt, using default values---\n");
-		fclose(file);
+		printf("---Doesn't found config.txt, using default values, rewriting file---\n");
+		write_config();
 		return;
 	}
 	read_var(file, &EXPLODETIME);
 	read_var(file, &DMGTIME);
-	read_var(file, &maxBombCount);
+	read_var(file, &MAXBOMBCOUNT);
 	read_var(file, &RADIUS);
-	read_var(file, &maxLeben);
+	read_var(file, &MAXLEBEN);
+	read_var(file, &SCHRITTWEITE);
 	fclose(file);
 }
 
@@ -491,47 +660,28 @@ int check(int direct, player *p){
             (p->y)++;
             break;
         case TB_KEY_ARROW_LEFT:
-            // border?
-            c = getc_arr(p->x -1 , p->y);
-            fprintf(log, "Zeichen links %c (%d)\n", c, c);
-            fflush(log);
-    		if (c == '+' || c == '-' || c == '|' || c == '#')
-    			return 1;
-
-    		// alles gut
-            (p->x)--;
-
-            // noch ein Schritt?
-			c = getc_arr(p->x -1 , p->y);
-            fprintf(log, "Zeichen links %c (%d)\n", c, c);
-            fflush(log);
-    		if (c == '+' || c == '-' || c == '|' || c == '#')
-    			return 0;
-
-    		// alles gut
-            (p->x)--;
-
+			for(int i = 0; i < SCHRITTWEITE; i++){
+				// border?
+            	c = getc_arr(p->x -1 , p->y);
+            	fprintf(log, "Zeichen links %c (%d)\n", c, c);
+            	fflush(log);
+    			if (c == '+' || c == '-' || c == '|' || c == '#')
+    				return 1;
+    			// alles gut
+            	(p->x)--;
+			}
             break;
         case TB_KEY_ARROW_RIGHT:
-            // border?
-            c = getc_arr(p->x +1, p->y);
-            fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
-            fflush(log);
-    		if (c == '+' || c == '-' || c == '|' || c == '#')
-    			return 1;
-
-    		// alles gut
-            (p->x)++;
-
-            // noch ein Schritt?
-            c = getc_arr(p->x +1, p->y);
-            fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
-            fflush(log);
-    		if (c == '+' || c == '-' || c == '|' || c == '#')
-    			return 0;
-
-    		// alles gut
-            (p->x)++;
+			for(int i = 0; i < SCHRITTWEITE; i++){
+				// border?
+            	c = getc_arr(p->x +1, p->y);
+            	fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
+            	fflush(log);
+    			if (c == '+' || c == '-' || c == '|' || c == '#')
+    				return 1;
+    			// alles gut
+            	(p->x)++;
+			}
             break;
         default:
         	return 1;
@@ -575,47 +725,29 @@ int check2(int direct, player *p2){
             (p2->y)++;
             break;
         case 'a':
-            // border?
-            c = getc_arr(p2->x -1 , p2->y);
-            fprintf(log, "Zeichen links %c (%d)\n", c, c);
-            fflush(log);
-    		if (c == '+' || c == '-' || c == '|' || c == '#')
-    			return 1;
-
-    		// alles gut
-            (p2->x)--;
-
-            // noch ein Schritt?
-            c = getc_arr(p2->x -1 , p2->y);
-            fprintf(log, "Zeichen links %c (%d)\n", c, c);
-            fflush(log);
-    		if (c == '+' || c == '-' || c == '|' || c == '#')
-    			return 0;
-
-    		// alles gut
-            (p2->x)--;
+			for(int i = 0; i < SCHRITTWEITE; i++){
+				// border?
+            	c = getc_arr(p2->x -1 , p2->y);
+            	fprintf(log, "Zeichen links %c (%d)\n", c, c);
+            	fflush(log);
+    			if (c == '+' || c == '-' || c == '|' || c == '#')
+    				return 1;
+    			// alles gut
+            	(p2->x)--;
+			}
 
             break;
         case 'd':
-            // border?
-            c = getc_arr(p2->x +1, p2->y);
-            fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
-            fflush(log);
-    		if (c == '+' || c == '-' || c == '|' || c == '#')
-    			return 1;
-
-    		// alles gut
-            (p2->x)++;
-
-            // noch ein Schritt?
-            c = getc_arr(p2->x +1, p2->y);
-            fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
-            fflush(log);
-    		if (c == '+' || c == '-' || c == '|' || c == '#')
-    			return 0;
-
-    		// alles gut
-            (p2->x)++;
+			for(int i = 0; i < SCHRITTWEITE; i++){
+				// border?
+            	c = getc_arr(p2->x +1, p2->y);
+            	fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
+            	fflush(log);
+    			if (c == '+' || c == '-' || c == '|' || c == '#')
+    				return 1;
+    			// alles gut
+        	    (p2->x)++;
+			}
             break;
         default:
         	return 1;
@@ -634,6 +766,9 @@ int startmenu(void){
 	printf("] to learn how to play the game\n");
     printf("\t- press [");
 	printf(BOLD "3" RESET);
+	printf("] to change the options\n");
+    printf("\t- press [");
+	printf(BOLD "4" RESET);
 	printf("] to quit the game\n");
 	printf("> ");
 	
@@ -660,7 +795,10 @@ int startmenu(void){
 				printf("If you want to play now you can now press [1] or [2] to start the game or [3] to quit the game\n");
 				break;
 			case '3':
-				return 3;
+				options();
+				break;
+			case '4':
+				return 4;
 			case '\n':
 				printf("> ");
 				break;
@@ -708,16 +846,16 @@ int createTermbox(){
 	player1->x = map_ptr->spawnAx;
 	player1->y = map_ptr->spawnAy;
 	player1->ch = '1';
-	player1->bombs = maxBombCount;
-	player1->isDead = maxLeben;
+	player1->bombs = MAXBOMBCOUNT;
+	player1->isDead = MAXLEBEN;
 	player1->isActive = 0;
 
 	player *player2 = malloc(sizeof(player));
 	player2->x = map_ptr->spawnBx;
 	player2->y = map_ptr->spawnBy;
 	player2->ch = '2';
-	player2->bombs = maxBombCount;
-	player2->isDead = maxLeben;
+	player2->bombs = MAXBOMBCOUNT;
+	player2->isDead = MAXLEBEN;
 	player2->isActive = 0;
 
 	
@@ -726,8 +864,8 @@ int createTermbox(){
 	fflush(log);	
 
 	// BombenArray, DAMAGEArray
-	bomb bomb_Array[maxBombCount*2];
-	for (int i = 0; i < maxBombCount*2; i++) {
+	bomb bomb_Array[MAXBOMBCOUNT*2];
+	for (int i = 0; i < MAXBOMBCOUNT*2; i++) {
 		bomb_Array[i].x = 0;
 		bomb_Array[i].y = 0;
 		bomb_Array[i].radius = 0;
@@ -806,7 +944,7 @@ int createTermbox(){
 			case TB_EVENT_KEY :
 				// ESC = Ende
 				if(event.key == TB_KEY_ESC){
-					Punktestand = (maxLeben+1) * player1->isDead + player2->isDead;
+					PUNKTESTAND = (MAXLEBEN+1) * player1->isDead + player2->isDead;
 					tb_shutdown();
 					return(0);
 				}
@@ -821,45 +959,31 @@ int createTermbox(){
 					//
 					// if not(move_res = 1), termbox will do nothing
 					// if yes(move_res = 0), termbox will print changed array_slots (oldX, oldY, newX, newY)
-					int move_res = move(event.key, player1);								// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
-					// Keine Bewegung, weil ungueltige Taste oder Wand
-					if(move_res == 1){
-						;
-						// do nothting
-					}
-					else{
-						int newX1 = player1->x;
-						int newY1 = player1->y;
-						// SPIELER 1 AKTUALISIEREN
-						tb_change_cell(oldX1, oldY1, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
-						tb_change_cell(newX1, newY1, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
-						// GEGENSPIELER AKTUALLISIEREN
-						tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+					move(event.key, player1);
+					int newX1 = player1->x;
+					int newY1 = player1->y;
+					// SPIELER 1 AKTUALISIEREN
+					tb_change_cell(oldX1, oldY1, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
+					tb_change_cell(newX1, newY1, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+					// GEGENSPIELER AKTUALLISIEREN
+					tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
 
-						tb_present();														// TB neu printen
-					}
+					tb_present();	
 				}
 				// Spieler2 bewegt sich
 				else if(event.ch == 'w' || event.ch == 'a' || event.ch == 's' || event.ch == 'd'){
 					int oldX2 = player2->x;
 					int oldY2 = player2->y;
-					int move_res = move2(event.ch, player2);								// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
-					// Keine Bewegung, weil ungueltige Taste oder Wand
-					if(move_res == 1){
-						;					 
-						// do nothting
-					}
-					else{
-						int newX2 = player2->x;
-						int newY2 = player2->y;
-						// SPIELER 2 AKTUALLISIEREN
-						tb_change_cell(oldX2, oldY2, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
-						tb_change_cell(newX2, newY2, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
-						// GEGENSPIELER AKTUALLISIERUNG
-						tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+					move2(event.ch, player2);								// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
+					int newX2 = player2->x;
+					int newY2 = player2->y;
+					// SPIELER 2 AKTUALLISIEREN
+					tb_change_cell(oldX2, oldY2, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
+					tb_change_cell(newX2, newY2, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+					// GEGENSPIELER AKTUALLISIERUNG
+					tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
 
-						tb_present();														// TB neu printen
-					}
+					tb_present();							//TB neu printen
 
 				}
 				// Player 1 Bombe
@@ -889,7 +1013,7 @@ int createTermbox(){
 
 
 			// ALLE BOMBEN PRINTEN
-			for(int i = 0; i < maxBombCount*2; i++){
+			for(int i = 0; i < MAXBOMBCOUNT*2; i++){
 				if(bomb_Array[i].isActive){
 					// BOMBE ROT (VG)
 					tb_change_cell(bomb_Array[i].x, bomb_Array[i].y,'o',TB_BLACK,map_ptr->hg);
@@ -1011,16 +1135,16 @@ int createTermbox(){
 			}
 			else{
 				winner = 2;		// 1 gewinnt
-				Punktestand = player2->isDead;
+				PUNKTESTAND = player2->isDead;
 			}
 		}
 		else if(player2->isDead == 0){
 			winner = 1;			// 2 gewinnt
-			Punktestand = player1->isDead;
+			PUNKTESTAND = player1->isDead;
 		}
 
-		if(winner != -1){
-			Punktestand = (maxLeben+1) * player1->isDead + player2->isDead;
+		if(winner == 0){
+			PUNKTESTAND = (MAXLEBEN+1) * player1->isDead + player2->isDead;
 			sleep(2);
 		}
 		
@@ -1050,7 +1174,7 @@ void plantBomb(player *p, bomb *bomb_Array) {
 }
 
 int findFreeBombSlot(bomb *bomb_Array) {
-	for (int i = 0; i < maxBombCount*2; i++) {
+	for (int i = 0; i < MAXBOMBCOUNT*2; i++) {
 		bomb_Array += i;
 		if (! bomb_Array->isActive) {
 			bomb_Array -= i;
@@ -1064,7 +1188,7 @@ int findFreeBombSlot(bomb *bomb_Array) {
 
 // Zaehlt den TImer fuer Bombe runter
 void tickBombs(int *dmg_Array, bomb *bomb_Array) {
-	for (int i = 0; i < maxBombCount*2; i++){
+	for (int i = 0; i < MAXBOMBCOUNT*2; i++){
 		// Index hin
 		bomb_Array += i;
 		// wenn der Bombenslot aktiv ist
@@ -1281,6 +1405,108 @@ void read_map(struct map *ptr, char *str){
 	}
 	(ptr->ptr) -= elm;
 
+	//read extra configs for map, if given
+	char *buff = malloc(9);//check if map is followed by configs:\0
+	c = getc(file);
+	if (c == EOF)
+		return;
+	int count = 0;
+	for (; count < 8 && c != EOF && c != '\n'; count++){
+		*buff = c;
+		buff++;
+		c = getc(file);
+	}
+	*buff = '\0';
+	buff -= count;
+	while (c != '\n'){
+		c = getc(file);
+	}
+	if (count >= 7 && strcmp(buff, "configs:") == 0){
+		//Explodetime
+		int tmp = -1;
+		c = getc(file);//erste Zahl
+		while (c >= '0' && c <= '9'){
+			if (tmp == -1){
+				tmp = 0;
+			}
+			tmp *= 10;
+			tmp += c - '0';
+			c = getc(file);
+		}
+		if (tmp != -1)
+			EXPLODETIME = tmp;
+		c = getc(file);//für ' '
+		//Dmgtime
+		tmp = -1;
+		c = getc(file);//erste Zahl
+		while (c >= '0' && c <= '9'){
+			if (tmp == -1){
+				tmp = 0;
+			}
+			tmp *= 10;
+			tmp += c - '0';
+			c = getc(file);
+		}
+		if (tmp != -1)
+			DMGTIME = tmp;
+		c = getc(file);//für ' '
+		//MaxBombCount
+		tmp = -1;
+		c = getc(file);//erste Zahl
+		while (c >= '0' && c <= '9'){
+			if (tmp == -1){
+				tmp = 0;
+			}
+			tmp *= 10;
+			tmp += c - '0';
+			c = getc(file);
+		}
+		if (tmp != -1)
+			MAXBOMBCOUNT = tmp;
+		c = getc(file);//für ' '
+		//Radius
+		tmp = -1;
+		c = getc(file);//erste Zahl
+		while (c >= '0' && c <= '9'){
+			if (tmp == -1){
+				tmp = 0;
+			}
+			tmp *= 10;
+			tmp += c - '0';
+			c = getc(file);
+		}
+		if (tmp != -1)
+			RADIUS = tmp;
+		c = getc(file);//für ' '
+		//MaxLeben
+		tmp = -1;
+		c = getc(file);//erste Zahl
+		while (c >= '0' && c <= '9'){
+			if (tmp == -1){
+				tmp = 0;
+			}
+			tmp *= 10;
+			tmp += c - '0';
+			c = getc(file);
+		}
+		if (tmp != -1)
+			MAXLEBEN = tmp;
+		c = getc(file);//für ' '
+		//Schrittweite
+		tmp = -1;
+		c = getc(file);//erste Zahl
+		while (c >= '0' && c <= '9'){
+			if (tmp == -1){
+				tmp = 0;
+			}
+			tmp *= 10;
+			tmp += c - '0';
+			c = getc(file);
+		}
+		if (tmp != -1)
+			SCHRITTWEITE = tmp;
+		c = getc(file);//für '\n' oder EOF
+	}
 	fclose(file);
 }
 
@@ -1378,4 +1604,7 @@ void show_endanim(){
 
 /*
 Items
+
+Labyrinth
+generator
 */
