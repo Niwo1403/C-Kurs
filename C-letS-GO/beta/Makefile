@@ -49,7 +49,7 @@ endif
 all: CletS-GO
 
 # if not called with `make DEBUG=` compile in debug mode
-obj-y += CletS-GO.o
+#obj-y += CletS-GO.o
 # Append submodules to list, eg.:
 #     obj-y += mod1/module.o
 #     -include mod1/*.d
@@ -73,11 +73,13 @@ CletS-GO: $(obj-y)
 
 # Remove final binary, objects and dependency files
 clean:
-	@$(RM) -v CletS-GO $(obj-y) $(obj-y:.o=.d)
+	@$(RM) -v CletS-GO 
+        #$(obj-y) $(obj-y:.o=.d)
 
 # Don't use (builtin) suffix rules
 .SUFFIXES:
 # These aren't "real" build targets
 .PHONY: clean all
 # Don't remove intermediate files
-.PRECIOUS: $(obj-y) $(obj-y:.o=.d)
+.PRECIOUS: $(obj-y) 
+#$(obj-y:.o=.d)

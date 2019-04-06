@@ -1,12 +1,3 @@
-/*	tb_change_cell(int koorX, int koorY, char Zeichen, int FarbeZeichen, int FarbeBackGround)
-	--> damit manipuliert man Pixel
-
-	tb_present();
-	--> aktuallisiert die Termbox für den Anwender
-
-	tb_poll_event()
-		--> Wartet auf ein Event (Mouseclick, Keyboard)
-*/
 #include <stdio.h>
 #include <string.h>
 #include "termbox.h"
@@ -15,24 +6,16 @@
 #include <sys/types.h>
 #include <dirent.h>
 #include <time.h>
+#include <sys/ioctl.h>
 
 // DEFINES
-//#define maxBombCount 3   // Bomben_pro_Spieler
-//#define RADIUS 6
-
-// wir gehen davon aus dass 200 = 2s ist
-//#define EXPLODETIME 3
-//#define DMGTIME 2
-
-		// Farben
+// Farben
 #define RED "\033[31m"
 #define BOLD "\033[1m"
 #define RESET "\033[0m"
 #define GREEN "\033[32m"
 #define YELLOW "\033[33m"
 #define BLUE "\033[34m"
-
-
 
 //STRUCTS
 //map speichert Infos zur genutzten Map
@@ -58,7 +41,7 @@ typedef struct{
 	int isDead;			// ob der Spieler noch lebt
 	int isActive;		// ob der Spieler am Spiel teilnimmt bzw. existiert
 }player;
-
+//Bomben
 typedef struct{
 	int x;				// Position auf der map
 	int y;
@@ -67,17 +50,18 @@ typedef struct{
 	int isActive;		// ob die Bombe existiert
 }bomb;
 
-
 // GLOBALE VARIABLEN
 static struct map *map_ptr;
 int zustand = 0, fs;
 FILE *log = NULL;
 int winner = -1;
+int Punktestand = 0;
 int EXPLODETIME = 3;
 int DMGTIME = 2;
 int maxBombCount = 3;
 int RADIUS = 6;
 int maxLeben = 3;
+int *msg_log;
 
 // FUNKTIONEN deklarationen
 void show_anim(int);
@@ -89,7 +73,6 @@ int move(uint16_t button, player *p);
 int check(int, player *);
 int move2(uint32_t button, player *p);
 int check2(int direct, player *p2);
-
 void read_map(struct map *, char *);
 uint16_t hex_to_int(char);
 char getc_arr(int, int);
@@ -109,12 +92,14 @@ void explosion(int *dmg_Array, bomb *bomb_Array);
 int directionNonSolid(int x, int y, char direction);
 void read_config();
 void read_var(FILE *, int *);
+void print_msg(char *, int);
+void print_dead_msg(int);
 
 int main(int argc, char **argv){
 	fs = fullscreen(argc, argv);
 	if (fs){
 		system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
-		usleep(10000);//warten das in Vollbild gewechselt wurde
+		usleep(50000);//warten das in Vollbild gewechselt wurde
 	}
 	if (init())//fürt benötigte Code aus, der keine Rückgabewerte hat
 		return 0;
@@ -124,15 +109,18 @@ int main(int argc, char **argv){
 	res = createTermbox();
 	zustand = 3;//beendet den Loop in tick() und damit den Thread
 	show_endanim();
-	if(winner == 0)
+	if(winner == 0){
 		// Unentschieden
-		printf(BOLD YELLOW "\nDrawn game!\n\n" RESET);
-	else if(winner == 1 || winner == 2)
+		printf(BOLD YELLOW "\nDrawn game!\nLives left:\n\tplayer1: %d\n\tplayer2: %d\n\n" RESET, (int) Punktestand / (maxLeben+1), Punktestand % (maxLeben+1));
+	}
+	else if(winner == 1 || winner == 2){
 		// Einer gewinnt
-		printf(BOLD GREEN "\nPlayer %d wins!\n\n" RESET, winner);
-	else 
+		printf(BOLD GREEN "\nPlayer %d wins with %d lives left!\n\n" RESET, winner, Punktestand);
+	}
+	else{
 		// Spiel abgebrochen
-		printf(BOLD RED "\nGame canceled!\n\n" RESET);
+		printf(BOLD RED "\nGame canceled!\nLives left:\n\tplayer1: %d\n\tplayer2: %d\n\n" RESET, (int) Punktestand / (maxLeben+1), Punktestand % (maxLeben+1));
+	}
 
 	if (fs){
 		system("wmctrl -r ':ACTIVE:' -b toggle,fullscreen");//Macht Window zum Fullscreen oder beendet ihn
@@ -254,6 +242,9 @@ void start_generating(){
 			if (c == '\n')
 				printf("> ");
 			c = getchar();
+		}
+		if (c == 'n'){
+			getchar();
 		}
 	}
 }
@@ -381,6 +372,8 @@ int init(){
 	// Animation
 	show_anim(15);
 	read_config();
+	msg_log = malloc(sizeof (int) * (maxLeben *2 + 1));
+	*msg_log = 0; //0 terminiert
 	// Startmenue
 	zustand = startmenu();
 	if (zustand == 3){
@@ -394,7 +387,6 @@ int init(){
 	map_ptr = malloc(sizeof (struct map));
 	read_map(map_ptr, getLink());
 	return 0;
-
 }
 
 void read_var(FILE *file, int *adr){
@@ -428,6 +420,30 @@ void read_config(){
 	fclose(file);
 }
 
+void print_msg(char *str, int y){
+	int len = (int) strlen(str);
+	for (int i = 0; i < len; i++){
+		tb_change_cell(i+map_ptr->breite+2, y, *str, map_ptr->vg, map_ptr->hg);
+		str++;
+	}
+}
+
+void print_dead_msg(int player_num){
+	int count = 1;
+	for (;*msg_log != 0;count ++){
+		msg_log++;
+	}
+	*msg_log = player_num;
+	msg_log++;
+	*msg_log = 0;
+	char outp[15];
+	for (int i = 0; count > i; i++){
+		msg_log--;
+		sprintf(outp, "Player %d died.", *msg_log);
+		print_msg(outp, i + 1);
+	}
+}
+
 //returns the char at (x, y)
 char getc_arr(int x, int y){
 	int zs = y * (map_ptr->breite) + x;
@@ -437,6 +453,7 @@ char getc_arr(int x, int y){
 
 	return c;
 }
+
 int move(uint16_t button, player *p){
 		// Invalide Taste?
 		if(button > TB_KEY_ARROW_UP || TB_KEY_ARROW_RIGHT > button)
@@ -522,6 +539,7 @@ int check(int direct, player *p){
     }
     return 0;
 }
+
 int move2(uint32_t button, player *p2){
 		// Invalide Taste gibt es nicht, wurde schon geprueft
 
@@ -607,20 +625,16 @@ int check2(int direct, player *p2){
 }
 
 int startmenu(void){
-	//Optionen im Startmenü:
-
-	//Local Multiplayer
-		//2 players
-		//3 players
-		//4 players
-	//Online Multiplayer
-		//Host Game
-		//Join Game
-
-	printf("Welcome!\n");
-	printf("\t- press [1] to play local multiplayer\n");
-	printf("\t- press [2] to learn how to play the game\n");
-    printf("\t- press [3] to quit the game\n");
+	printf(BOLD YELLOW "Welcome!\n" RESET);
+	printf("\t- press [");
+	printf(BOLD "1" RESET);
+	printf("] to play local multiplayer\n");
+	printf("\t- press [");
+	printf(BOLD "2" RESET);
+	printf("] to learn how to play the game\n");
+    printf("\t- press [");
+	printf(BOLD "3" RESET);
+	printf("] to quit the game\n");
 	printf("> ");
 	
 	char c;
@@ -638,12 +652,9 @@ int startmenu(void){
 				printf("\t- player 1 moves with [ARROW_UP], [ARROW_LEFT], [ARROW_DOWN], [ARROW_RIGHT] and places bombs with [Enter]\n");
 				printf("\t- player 2 moves with [W], [A], [S], [D] and places bombs with [Space]\n");
         		printf("Rules:\n");
-//        		printf("\t- One game consists of several rounds\n");
         		printf("\t- A round will end when one player dies\n");
-//        		printf("\t- The first player to win 3 rounds wins the game\n");
 				printf("Tips:\n");
 				printf("\t- Bombs can't destroy the solid blocks (-, +, |, #)\n");
-				//printf("Bombs can destroy the destructible blocks (x)\n");
         		printf("\t- Do not walk into the explosions!\n");
 				printf(" \n");
 				printf("If you want to play now you can now press [1] or [2] to start the game or [3] to quit the game\n");
@@ -673,15 +684,23 @@ int createTermbox(){
     // cleart die TB einmal - macht sie "startklar"
     tb_clear();
 
+	//Map Hintergrund wird gezeichnet
+	struct winsize w;
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);//w.ws_row, w.ws_col gibt Terminal größe aus
+    for(int i = 0; i < w.ws_row; i++){			// y-Koordinate
+		for(int j = 0; j < w.ws_col; j++){		// x-Koordinate
+			tb_change_cell(j, i, ' ', map_ptr->vg, map_ptr->hg);
+		}
+	}
+
 	// Map wird gezeichnet
 	char *ptr = map_ptr->ptr;
-	for(int i = 0; i < map_ptr->hoehe; i++)			// y-Koordinate
+	for(int i = 0; i < map_ptr->hoehe; i++){			// y-Koordinate
 		for(int j = 0; j < map_ptr->breite; j++){		// x-Koordinate
 			tb_change_cell(j, i, *ptr, map_ptr->vg, map_ptr->hg);
 			ptr++;						// position Pointer erhoehen
-
+		}
 	}
-
 
     tb_present();
 	// Eine Figur anlegen
@@ -738,8 +757,6 @@ int createTermbox(){
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
-	// AB HIER: EVENTS
-	// AB HIER: EVENTS
 
 	// Bombentimer
 	clock_t start = clock();
@@ -748,6 +765,30 @@ int createTermbox(){
 	// BombenRefresh [Inventar]
 	clock_t start_bomb = clock();
 	clock_t end_bomb;
+
+	//Farben ausgeben lassen:
+	/*char c;
+	for (int k = 0; k < 16; k++){
+		for (int l = 0; l < 16; l++){
+			if (l == 0){
+				if (k > 9)
+					c = k - 10 + 'a';
+				else
+					c = k + '0';
+				tb_change_cell(70+k, l, c, 0x00, k*16+l);
+			}else if(k == 0){
+				if (l > 9)
+					c = l - 10 + 'a';
+				else
+					c = l + '0';
+				tb_change_cell(70+k, l, c, 0x00, k*16+l);
+			}else{
+				tb_change_cell(70+k, l, ' ', 0x00, k*16+l);
+			}
+		}
+	}
+	tb_present();
+	*/
 
 	while (winner == -1){	
 
@@ -765,6 +806,7 @@ int createTermbox(){
 			case TB_EVENT_KEY :
 				// ESC = Ende
 				if(event.key == TB_KEY_ESC){
+					Punktestand = (maxLeben+1) * player1->isDead + player2->isDead;
 					tb_shutdown();
 					return(0);
 				}
@@ -848,9 +890,36 @@ int createTermbox(){
 
 			// ALLE BOMBEN PRINTEN
 			for(int i = 0; i < maxBombCount*2; i++){
-				if(bomb_Array[i].isActive)
+				if(bomb_Array[i].isActive){
 					// BOMBE ROT (VG)
 					tb_change_cell(bomb_Array[i].x, bomb_Array[i].y,'o',TB_BLACK,map_ptr->hg);
+					//Sprenggebiet vor Explosion einfärben
+					int blockiere[4] = {1, 1, 1, 1};
+					if (bomb_Array[i].timer == 1){
+						for (int j = 1; j <= RADIUS; j++){
+							if (directionNonSolid(bomb_Array[i].x+j-1, bomb_Array[i].y, 'r') && bomb_Array[i].x+j < map_ptr->breite && bomb_Array[i].x+j > 0 && blockiere[0]){
+								tb_change_cell(bomb_Array[i].x+j, bomb_Array[i].y, getc_arr(bomb_Array[i].x+j, bomb_Array[i].y),map_ptr->vg, 0xa6);
+							}else{
+								blockiere[0] = 0;
+							}
+							if (directionNonSolid(bomb_Array[i].x-j+1, bomb_Array[i].y, 'l') && bomb_Array[i].x-j < map_ptr->breite && bomb_Array[i].x-j > 0 && blockiere[1]){
+								tb_change_cell(bomb_Array[i].x-j, bomb_Array[i].y, getc_arr(bomb_Array[i].x-j, bomb_Array[i].y),map_ptr->vg, 0xa6);
+							}else{
+								blockiere[1] = 0;
+							}
+							if (directionNonSolid(bomb_Array[i].x, bomb_Array[i].y+j-1, 'd') && bomb_Array[i].y+j < map_ptr->hoehe && bomb_Array[i].y+j > 0 && blockiere[2]){
+								tb_change_cell(bomb_Array[i].x, bomb_Array[i].y+j, getc_arr(bomb_Array[i].x, bomb_Array[i].y+j),map_ptr->vg, 0xa6);
+							}else{
+								blockiere[2] = 0;
+							}
+							if (directionNonSolid(bomb_Array[i].x, bomb_Array[i].y-j+1, 'u') && bomb_Array[i].y-j < map_ptr->hoehe && bomb_Array[i].y-j > 0 && blockiere[3]){
+								tb_change_cell(bomb_Array[i].x, bomb_Array[i].y-j, getc_arr(bomb_Array[i].x, bomb_Array[i].y-j),map_ptr->vg, 0xa6);
+							}else{
+								blockiere[3] = 0;
+							}
+						}
+					}
+				}
 			}
 	
 
@@ -904,6 +973,7 @@ int createTermbox(){
 			player1->isDead--;
 			player1->x = map_ptr->spawnAx;
 			player1->y = map_ptr->spawnAy;
+			print_dead_msg(1);
 			for (int i = 0; 2 > i; i++){
 				usleep(250000);
 				tb_change_cell(player1->x, player1->y, 'X', TB_BLACK, map_ptr->hg);
@@ -921,6 +991,7 @@ int createTermbox(){
 			player2->isDead--;
 			player2->x = map_ptr->spawnBx;
 			player2->y = map_ptr->spawnBy;
+			print_dead_msg(2);
 			for (int i = 0; 2 > i; i++){
 				usleep(250000);
 				tb_change_cell(player2->x, player2->y, 'X', TB_BLACK, map_ptr->hg);
@@ -935,17 +1006,21 @@ int createTermbox(){
 
 		// Gewinner?
 		if(player1->isDead == 0){
-			if(player2->isDead == 0)
+			if(player2->isDead == 0){
 				winner = 0;		// unentschieden
-			else
+			}
+			else{
 				winner = 2;		// 1 gewinnt
+				Punktestand = player2->isDead;
+			}
 		}
-		else if(player2->isDead == 0)
+		else if(player2->isDead == 0){
 			winner = 1;			// 2 gewinnt
+			Punktestand = player1->isDead;
+		}
 
 		if(winner != -1){
-			// tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg, map_ptr->hg);
-			// tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg, map_ptr->hg);
+			Punktestand = (maxLeben+1) * player1->isDead + player2->isDead;
 			sleep(2);
 		}
 		
@@ -954,13 +1029,7 @@ int createTermbox(){
 	return(0);
 }
 
-
-// BOMBEN BOMBEN BOMBEN BOMBEN BOMBEN BOMBEN BOMBEN
-
-// findet einen freien Bombenslot (im bombs-array) und gibt ihn aus
-// das Bomben-array wird so aufgeteilt, dass der erste Spieler die ersten x
-// Bombenslots zugewiesen werden, und auf die einzelnen ueber die bombsPlaced
-// Variable zugegriffen wird
+// BOMBEN			findet einen freien Bombenslot (im bombs-array) und gibt ihn aus das Bomben-array wird so aufgeteilt, dass der erste Spieler die ersten x Bombenslots zugewiesen werden, und auf die einzelnen ueber die bombsPlaced Variable zugegriffen wird
 void plantBomb(player *p, bomb *bomb_Array) {
 	// prueft #bomben eines Spieleers
 	if (p->bombs) {
@@ -979,6 +1048,7 @@ void plantBomb(player *p, bomb *bomb_Array) {
 		}
 	}
 }
+
 int findFreeBombSlot(bomb *bomb_Array) {
 	for (int i = 0; i < maxBombCount*2; i++) {
 		bomb_Array += i;
@@ -991,7 +1061,6 @@ int findFreeBombSlot(bomb *bomb_Array) {
 	}
 	return (-1); // falls kein Slot frei ist wird -1 zurueckgegeben
 }
-
 
 // Zaehlt den TImer fuer Bombe runter
 void tickBombs(int *dmg_Array, bomb *bomb_Array) {
@@ -1012,9 +1081,7 @@ void tickBombs(int *dmg_Array, bomb *bomb_Array) {
 		(bomb_Array) -= i;
 	}
 }
-// void explodeBomb(bomb *bomb_Array) {
-// 	explosion(bomb_Array->x, bomb_Array->y, EXPLODETIME, RADIUS); 
-// }
+
 void explosion(int *dmg_Array, bomb *bomb_Array){
 
 	// Kopie vom Array
@@ -1105,7 +1172,6 @@ int directionNonSolid(int x, int y, char direction){
 			return(1);
 	}
 }
-
 
 uint16_t hex_to_int(char c){
 	uint16_t ret = 0;
@@ -1219,7 +1285,6 @@ void read_map(struct map *ptr, char *str){
 }
 
 //Animationen:
-
 void show_anim(int time) {
 	system("clear");
 	char clets[9][68] = {
@@ -1312,6 +1377,5 @@ void show_endanim(){
 } 
 
 /*
-Rest Leben ausgabe
-Vor expl. gelb färben
+Items
 */
