@@ -26,6 +26,11 @@ struct map{
 	int spawnBx, spawnBy;
 	char *ptr;
 };
+//ein Item
+typedef struct{
+	int x, y;
+	char desc;//sagt welches Item es ist
+}item;
 // ein 'Pixel'
 typedef struct{
 	int x;
@@ -62,7 +67,14 @@ int MAXBOMBCOUNT = 3;
 int RADIUS = 5;
 int MAXLEBEN = 3;
 int SCHRITTWEITE = 2;
+int ITEMS = 3;//3 Items max
+int ITEMSCHANCE = 60;//60% 
+
 int *msg_log;
+item *item_Array;
+int item_count;
+player *player2;
+player *player1;
 
 // FUNKTIONEN deklarationen
 void show_anim(int);
@@ -98,6 +110,11 @@ void options();
 void write_config();
 void write_str(FILE *, char *);
 int i_len(int);
+int find_empty_place(int *, int *);
+void checkItem(player *);
+void rm_Item_at(int, int);
+void copy_item_value(item *, item *);
+int exists_item_at(int, int);
 
 int main(int argc, char **argv){
 	fs = fullscreen(argc, argv);
@@ -108,21 +125,28 @@ int main(int argc, char **argv){
 	if (init())//fürt benötigte Code aus, der keine Rückgabewerte hat
 		return 0;
 	
+	srand(time(NULL));
+	for(int i = 0; i != 1; i=(rand() % 100) + 1){
+		printf("%d  ", i);
+	}
 	// res speichert den eigentlichen return-Wert
 	int res;
 	res = createTermbox();
 	show_endanim();
 	if(winner == 0){
 		// Unentschieden
-		printf(BOLD YELLOW "\nDrawn game!\nLives left:\n\tplayer1: %d\n\tplayer2: %d\n\n" RESET, (int) PUNKTESTAND / (MAXLEBEN+1), PUNKTESTAND % (MAXLEBEN+1));
+		printf(BOLD YELLOW "\nDrawn game!\n\n" RESET);
 	}
-	else if(winner == 1 || winner == 2){
+	else if(winner == 1){
 		// Einer gewinnt
-		printf(BOLD GREEN "\nPlayer %d wins with %d lives left!\n\n" RESET, winner, PUNKTESTAND);
+		printf(BOLD GREEN "\nPlayer 1 wins with %d lives left!\n\n" RESET, player2->isDead);
+	} else if (winner == 2){
+		// Einer gewinnt
+		printf(BOLD GREEN "\nPlayer 2 wins with %d lives left!\n\n" RESET, player2->isDead);
 	}
 	else{
 		// Spiel abgebrochen
-		printf(BOLD RED "\nGame canceled!\nLives left:\n\tplayer1: %d\n\tplayer2: %d\n\n" RESET, (int) PUNKTESTAND / (MAXLEBEN+1), PUNKTESTAND % (MAXLEBEN+1));
+		printf(BOLD RED "\nGame canceled!\nLives left:\n\tplayer1: %d\n\tplayer2: %d\n\n" RESET, player1->isDead, player2->isDead);
 	}
 
 	if (fs){
@@ -247,6 +271,43 @@ void set_options(){
 		SCHRITTWEITE = temp;
 		temp = -1;
 	}
+
+	printf("\tItems(%d): ", ITEMS);
+	c = getchar();
+	while (c <= '9' && c >= '0'){
+		if (temp == -1){
+			temp = 0;
+		}
+		temp *= 10;
+		temp += c - '0';
+		c = getchar();
+	}
+	while (c != '\n'){
+		c = getchar();
+	}
+	if (temp != -1){
+		ITEMS = temp;
+		temp = -1;
+	}
+	
+	printf("\tItemchance(%d): ", ITEMSCHANCE);
+	c = getchar();
+	while (c <= '9' && c >= '0'){
+		if (temp == -1){
+			temp = 0;
+		}
+		temp *= 10;
+		temp += c - '0';
+		c = getchar();
+	}
+	while (c != '\n'){
+		c = getchar();
+	}
+	if (temp != -1){
+		ITEMSCHANCE = temp;
+		temp = -1;
+	}
+
 	printf("Option editing done.\n> "); 
 }
 
@@ -259,6 +320,8 @@ void options(){
 		read_var(file, &RADIUS);
 		read_var(file, &MAXLEBEN);
 		read_var(file, &SCHRITTWEITE);
+		read_var(file, &ITEMS);
+		read_var(file, &ITEMSCHANCE);
 	}
 	fclose(file);
 
@@ -288,9 +351,9 @@ int i_len(int num){
 
 void write_config(){//writes current config values to config.txt
 	FILE *file = fopen("./config.txt", "w");
-	char *ptr = malloc(i_len(EXPLODETIME)+i_len(DMGTIME)+i_len(MAXBOMBCOUNT)+i_len(RADIUS)+i_len(MAXLEBEN)+i_len(SCHRITTWEITE) + 5 + 68 + 1);
+	char *ptr = malloc(i_len(EXPLODETIME)+i_len(DMGTIME)+i_len(MAXBOMBCOUNT)+i_len(RADIUS)+i_len(MAXLEBEN)+i_len(SCHRITTWEITE)+i_len(ITEMS)+i_len(ITEMSCHANCE) + 8 + 88 + 1);
 	
-	sprintf(ptr, "EXPLODETIME: %d\nDMGTIME: %d\nMAXBOMBCOUNT: %d\nRADIUS: %d\nMAXLEBEN: %d\nSCHRITTWEITE: %d\n", EXPLODETIME, DMGTIME, MAXBOMBCOUNT, RADIUS, MAXLEBEN, SCHRITTWEITE);
+	sprintf(ptr, "EXPLODETIME: %d\nDMGTIME: %d\nMAXBOMBCOUNT: %d\nRADIUS: %d\nMAXLEBEN: %d\nSCHRITTWEITE: %d\nITEMS: %d\nITEMSCHANCE: %d\n", EXPLODETIME, DMGTIME, MAXBOMBCOUNT, RADIUS, MAXLEBEN, SCHRITTWEITE, ITEMS, ITEMSCHANCE);
 	write_str(file, ptr);
 	free(ptr);
 	fclose(file);
@@ -623,6 +686,113 @@ char getc_arr(int x, int y){
 	return c;
 }
 
+void copy_item_val(item *dest, item *src){
+	dest->x = src->x;
+	dest->y = src->y;
+	dest->desc = src->desc;
+}
+
+void rm_Item_at(int x, int y){//Funktion Testem
+	item_count--;
+	int tmp = item_count;
+	while (item_Array->x != x || item_Array->y != y){
+		item_Array++;
+		tmp--;
+	}
+	item *item_Array2 = item_Array;
+	item_Array2++;
+	for (int i = 0; i < tmp; i++){
+		//Daten kopieren
+		copy_item_val(item_Array, item_Array2);
+		
+		item_Array++;
+		item_Array2++;
+	}
+	item_Array -= item_count;
+	tb_change_cell(x, y, ' ', map_ptr->vg, map_ptr->hg);
+}
+
+void checkItem(player *p){
+	for(int i = 0; i < item_count; i++){
+		if (item_Array->x == p->x && item_Array->y == p->y){
+			
+			//player hat Item
+			int oldx = p->x, oldy = p->y;
+			do{
+				switch (item_Array->desc){
+					case 'R'://Range
+						RADIUS += 2;
+						item_Array->desc = ' ';
+						break;
+					case 'B'://Bombrefresch
+						p->bombs = MAXBOMBCOUNT;
+						item_Array->desc = ' ';
+						break;
+					case 'L'://restore one live
+						p->isDead++;
+						item_Array->desc = ' ';
+						break;
+					case '?'://random
+						srand(time(NULL));
+						int t = rand() % 5;
+						if (t == 0)
+							item_Array->desc = 'R';
+						else if (t == 1)
+							item_Array->desc = 'B';
+						else if (t == 2)
+							item_Array->desc = 'L';
+						else if (t == 3)
+							item_Array->desc = 'K';
+						else
+							item_Array->desc = 'T';
+						break;
+					case 'K'://kill other player
+						if (p->ch == '1'){
+							tb_change_cell(player2->x, player2->y, ' ', map_ptr->vg, map_ptr->hg);
+							player2->x = map_ptr->spawnBx;
+							player2->y = map_ptr->spawnBy;
+							player2->isDead--;
+							print_dead_msg(2);
+						}
+						else{
+							tb_change_cell(player1->x, player1->y, ' ', map_ptr->vg, map_ptr->hg);
+							player1->x = map_ptr->spawnAx;
+							player1->y = map_ptr->spawnAy;
+							player1->isDead--;
+							print_dead_msg(1);
+						}
+						item_Array->desc = ' ';
+						break;  
+					case 'T'://Teleport player
+						for (int j = 0; j < 10; j++){
+							if (!(find_empty_place(&(p->x), &(p->y)))){
+								break;//Platz gefunden
+							}
+							if (j == 9){
+								p->x = oldx;
+								p->y = oldy;
+							}
+						}
+						item_Array->desc = ' ';
+						break;  
+					default:
+						item_Array->desc = ' ';
+						break;
+				}
+				tb_present();
+
+			}while(item_Array->desc != ' ');
+
+			//Item entfernen
+			item_Array -= i;
+			rm_Item_at(oldx, oldy);
+			return;
+		}
+		item_Array++;
+	}
+	item_Array -= item_count;
+}
+
 int move(uint16_t button, player *p){
 		// Invalide Taste?
 		if(button > TB_KEY_ARROW_UP || TB_KEY_ARROW_RIGHT > button)
@@ -647,6 +817,7 @@ int check(int direct, player *p){
     			return 1;
     		// alles gut
           	(p->y)--;
+			checkItem(p);
             break;
         case TB_KEY_ARROW_DOWN:
             // border?
@@ -658,6 +829,7 @@ int check(int direct, player *p){
 
     		// alles gut
             (p->y)++;
+			checkItem(p);
             break;
         case TB_KEY_ARROW_LEFT:
 			for(int i = 0; i < SCHRITTWEITE; i++){
@@ -665,10 +837,12 @@ int check(int direct, player *p){
             	c = getc_arr(p->x -1 , p->y);
             	fprintf(log, "Zeichen links %c (%d)\n", c, c);
             	fflush(log);
-    			if (c == '+' || c == '-' || c == '|' || c == '#')
+    			if (c == '+' || c == '-' || c == '|' || c == '#'){
     				return 1;
+				}
     			// alles gut
             	(p->x)--;
+				checkItem(p);
 			}
             break;
         case TB_KEY_ARROW_RIGHT:
@@ -677,10 +851,12 @@ int check(int direct, player *p){
             	c = getc_arr(p->x +1, p->y);
             	fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
             	fflush(log);
-    			if (c == '+' || c == '-' || c == '|' || c == '#')
+    			if (c == '+' || c == '-' || c == '|' || c == '#'){
     				return 1;
+				}
     			// alles gut
             	(p->x)++;
+				checkItem(p);
 			}
             break;
         default:
@@ -694,7 +870,7 @@ int move2(uint32_t button, player *p2){
 		// Invalide Taste gibt es nicht, wurde schon geprueft
 
 		// haben safe w a s d
-
+		
 		// kann man sich bewegen?
 		int check_res = check2(button, p2);
 		return(check_res);
@@ -712,6 +888,7 @@ int check2(int direct, player *p2){
     			return 1;
     		// alles gut
           	(p2->y)--;
+			checkItem(p2);
             break;
         case 's':
             // border?
@@ -723,6 +900,7 @@ int check2(int direct, player *p2){
 
     		// alles gut
             (p2->y)++;
+			checkItem(p2);
             break;
         case 'a':
 			for(int i = 0; i < SCHRITTWEITE; i++){
@@ -730,10 +908,12 @@ int check2(int direct, player *p2){
             	c = getc_arr(p2->x -1 , p2->y);
             	fprintf(log, "Zeichen links %c (%d)\n", c, c);
             	fflush(log);
-    			if (c == '+' || c == '-' || c == '|' || c == '#')
+    			if (c == '+' || c == '-' || c == '|' || c == '#'){
     				return 1;
+				}
     			// alles gut
             	(p2->x)--;
+				checkItem(p2);
 			}
 
             break;
@@ -743,10 +923,12 @@ int check2(int direct, player *p2){
             	c = getc_arr(p2->x +1, p2->y);
             	fprintf(log, "Zeichen rechts %c (%d)\n", c, c);
             	fflush(log);
-    			if (c == '+' || c == '-' || c == '|' || c == '#')
+    			if (c == '+' || c == '-' || c == '|' || c == '#'){
     				return 1;
+				}
     			// alles gut
         	    (p2->x)++;
+				checkItem(p2);
 			}
             break;
         default:
@@ -788,6 +970,13 @@ int startmenu(void){
 				printf("\t- player 2 moves with [W], [A], [S], [D] and places bombs with [Space]\n");
         		printf("Rules:\n");
         		printf("\t- A round will end when one player dies\n");
+        		printf("Items:\n");
+        		printf("\t- 'R' Increases radius by 2\n");
+        		printf("\t- 'B' Restore all bombs for the player\n");
+        		printf("\t- 'L' Adds one Live\n");
+        		printf("\t- '?' Random other item\n");
+        		printf("\t- 'K' Kills the other player\n");
+        		printf("\t- 'T' Teleports player to random location\n");
 				printf("Tips:\n");
 				printf("\t- Bombs can't destroy the solid blocks (-, +, |, #)\n");
         		printf("\t- Do not walk into the explosions!\n");
@@ -809,7 +998,36 @@ int startmenu(void){
 	return(0);
 }
 
+int exists_item_at(int x, int y){
+	for(int i = 0; i < item_count; i++){
+		if((item_Array->x == x) && (item_Array->y == y)){
+			item_Array -= i;
+			return 0;
+		}
+		item_Array++;
+	}
+	item_Array -= item_count;
+	return 1;
+}
+
+int find_empty_place(int *x, int *y){
+	srand(time(NULL));
+	int tmp_x, tmp_y;
+	for(int i = 0; i < 50; i++){
+		tmp_y = (rand() % (map_ptr->hoehe-1))+1;
+		tmp_x = (rand() % (map_ptr->breite-1))+1;
+		if (getc_arr(tmp_x, tmp_y) == ' ' && exists_item_at(tmp_x, tmp_y) == 1){
+			*y = tmp_y;
+			*x = tmp_x;
+			return 0;
+		}
+		usleep(1000);
+	}
+	return 1;
+}
+
 int createTermbox(){
+//start actual program
 	int code = tb_init();
 	if (code < 0) {
         fprintf(stderr, "termbox init failed, code: %d\n", code);
@@ -842,7 +1060,7 @@ int createTermbox(){
 
     tb_present();
 	// Eine Figur anlegen
-	player *player1 = malloc(sizeof(player));
+	player1 = malloc(sizeof(player));
 	player1->x = map_ptr->spawnAx;
 	player1->y = map_ptr->spawnAy;
 	player1->ch = '1';
@@ -850,7 +1068,7 @@ int createTermbox(){
 	player1->isDead = MAXLEBEN;
 	player1->isActive = 0;
 
-	player *player2 = malloc(sizeof(player));
+	player2 = malloc(sizeof(player));
 	player2->x = map_ptr->spawnBx;
 	player2->y = map_ptr->spawnBy;
 	player2->ch = '2';
@@ -872,10 +1090,12 @@ int createTermbox(){
 		bomb_Array[i].timer = 0;
 		bomb_Array[i].isActive = 0;
 	}
-	// DAMAGEArray
-	// int dmg_Array[map_ptr->breite*map_ptr->hoehe];
-	// for(int i = 0; i < map_ptr->breite*map_ptr->hoehe; i++)	
-	// 	dmg_Array[i] = 0;
+	
+	//ITEM array erstellen
+	item_Array = malloc(ITEMS * sizeof(item));
+	item_count = 0;
+
+
 
 	int *dmg_Array = malloc(map_ptr->breite * map_ptr->hoehe * sizeof(int));
 	for(int i = 0; i < map_ptr->breite * map_ptr->hoehe; i++){
@@ -895,14 +1115,6 @@ int createTermbox(){
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
 	// AB HIER: EVENTS
-
-	// Bombentimer
-	clock_t start = clock();
-	clock_t end;
-
-	// BombenRefresh [Inventar]
-	clock_t start_bomb = clock();
-	clock_t end_bomb;
 
 	//Farben ausgeben lassen:
 	/*char c;
@@ -927,11 +1139,125 @@ int createTermbox(){
 	}
 	tb_present();
 	*/
+//start while loop
+		// Bombentimer
+		clock_t start = clock();
+		clock_t end;
 
-	while (winner == -1){	
+		// BombenRefresh [Inventar]
+		clock_t start_bomb = clock();
+		clock_t end_bomb;
 
+		// Items
+		clock_t start_item = clock();
+		clock_t end_item;
+	
+		//für Random Funktion:
+		srand(time(NULL));
 		struct tb_event event;
-		int tb_input = tb_peek_event(&event,5);		// welche Art von Input (Maus, Tastatur)
+		int tb_input, r;
+
+	while (winner == -1){//winner==-1 -> es gibt noch keinen Gewinner
+
+		//ITEMS setzen (vor Laufen der Player)
+		end_item = clock();
+		if ( ((double) (end_item-start_item) / CLOCKS_PER_SEC )> 0.1){
+			start_item = clock();
+			r = (rand() % 100);
+			if (r < ITEMSCHANCE && item_count < ITEMS){
+				//ADD ITEM
+				r = (r%6)+1;
+				switch (r)
+				{
+					case 1:
+						//higher range / radius
+						item_Array += item_count;
+						if (find_empty_place(&(item_Array->x), &(item_Array->y))){
+							item_Array -= item_count;
+							break;//kein Platz gefunden
+						}
+						item_Array->desc = 'R';
+						tb_change_cell(item_Array->x, item_Array->y, item_Array->desc, map_ptr->vg, map_ptr->hg);
+						item_Array -= item_count;
+
+						item_count++;
+						break;
+					case 2:
+						//Bomben auffüllen
+						item_Array += item_count;
+						if (find_empty_place(&(item_Array->x), &(item_Array->y))){
+							item_Array -= item_count;
+							break;//kein Platz gefunden
+						}
+						item_Array->desc = 'B';
+						tb_change_cell(item_Array->x, item_Array->y, item_Array->desc, map_ptr->vg, map_ptr->hg);
+						item_Array -= item_count;
+
+						item_count++;
+						break;
+					case 3:
+						//Bonusleben
+						item_Array += item_count;
+						if (find_empty_place(&(item_Array->x), &(item_Array->y))){
+							item_Array -= item_count;
+							break;//kein Platz gefunden
+						}
+						item_Array->desc = 'L';
+						tb_change_cell(item_Array->x, item_Array->y, item_Array->desc, map_ptr->vg, map_ptr->hg);
+						item_Array -= item_count;
+
+						item_count++;
+						break;
+					case 4:
+						//Random Item
+						item_Array += item_count;
+						if (find_empty_place(&(item_Array->x), &(item_Array->y))){
+							item_Array -= item_count;
+							break;//kein Platz gefunden
+						}
+						item_Array->desc = '?';
+						tb_change_cell(item_Array->x, item_Array->y, item_Array->desc, map_ptr->vg, map_ptr->hg);
+						item_Array -= item_count;
+
+						item_count++;
+						break;
+					case 5:
+						//Instant kill
+						item_Array += item_count;
+						if (find_empty_place(&(item_Array->x), &(item_Array->y))){
+							item_Array -= item_count;
+							break;//kein Platz gefunden
+						}
+						item_Array->desc = 'K';
+						tb_change_cell(item_Array->x, item_Array->y, item_Array->desc, map_ptr->vg, map_ptr->hg);
+						item_Array -= item_count;
+
+						item_count++;
+						break;
+					case 6:
+						//Teleport Player
+						item_Array += item_count;
+						if (find_empty_place(&(item_Array->x), &(item_Array->y))){
+							item_Array -= item_count;
+							break;//kein Platz gefunden
+						}
+						item_Array->desc = 'T';
+						tb_change_cell(item_Array->x, item_Array->y, item_Array->desc, map_ptr->vg, map_ptr->hg);
+						item_Array -= item_count;
+
+						item_count++;
+						break;
+					default:
+						break;
+				}
+				tb_present();
+			}
+		}
+		player1->ch = '1';
+		player2->ch = '2';
+		tb_present();
+
+		tb_input = tb_peek_event(&event,5);		// welche Art von Input (Maus, Tastatur)
 
 		// Falls Fehler
 		if(tb_input == -1){
@@ -960,11 +1286,9 @@ int createTermbox(){
 					// if not(move_res = 1), termbox will do nothing
 					// if yes(move_res = 0), termbox will print changed array_slots (oldX, oldY, newX, newY)
 					move(event.key, player1);
-					int newX1 = player1->x;
-					int newY1 = player1->y;
 					// SPIELER 1 AKTUALISIEREN
 					tb_change_cell(oldX1, oldY1, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
-					tb_change_cell(newX1, newY1, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+					tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
 					// GEGENSPIELER AKTUALLISIEREN
 					tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
 
@@ -975,11 +1299,9 @@ int createTermbox(){
 					int oldX2 = player2->x;
 					int oldY2 = player2->y;
 					move2(event.ch, player2);								// ACHTUNG: HIER NOCH struct-player-Array übergeben !!!!!!!!!!!!!!!!!!!!!!!!
-					int newX2 = player2->x;
-					int newY2 = player2->y;
 					// SPIELER 2 AKTUALLISIEREN
 					tb_change_cell(oldX2, oldY2, ' ', map_ptr->vg, map_ptr->hg);			// alte Position ist nun Space
-					tb_change_cell(newX2, newY2, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
+					tb_change_cell(player2->x, player2->y, player2->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
 					// GEGENSPIELER AKTUALLISIERUNG
 					tb_change_cell(player1->x, player1->y, player1->ch, map_ptr->vg, map_ptr->hg);	// neue das Spieler-Zeichen
 
@@ -1005,12 +1327,11 @@ int createTermbox(){
 		end_bomb = clock();
 
 		// ANFANG BOMBENTICK
-		if( ( (double) (end-start) / CLOCKS_PER_SEC )> 0.01){
+		if( ( (double) (end-start) / CLOCKS_PER_SEC )> 0.03){
 			start = clock();
 
 			// tickt runter
 			tickBombs(dmg_Array, bomb_Array);
-
 
 			// ALLE BOMBEN PRINTEN
 			for(int i = 0; i < MAXBOMBCOUNT*2; i++){
@@ -1045,7 +1366,6 @@ int createTermbox(){
 					}
 				}
 			}
-	
 
 			// dmg-Map akuallisieren	- 	BOMBEN RADIUS wird gezeichnet
 			for(int i = 0; i < map_ptr->hoehe; i++){
@@ -1067,10 +1387,11 @@ int createTermbox(){
 				}
 			}
 			dmg_Array -= map_ptr->breite * map_ptr->hoehe;
+
 			tb_present();
 		} // ENDE BOMBENTICK
 
-		// BOMBEN REFRESH
+		// BOMBEN REFRESH UND ITEMS
 		if( ( (double) (end_bomb - start_bomb) / CLOCKS_PER_SEC )> 0.03){
 			start_bomb = clock();
 
@@ -1082,7 +1403,8 @@ int createTermbox(){
 			if(player2->bombs < 3)
 				(player2->bombs)++;
 
-		} // ENDE BOMBEN REFRESH
+
+		} // ENDE BOMBEN REFRESH UND ITEMS
 
 
 		// pruefe ob Spieler in Bombe gerannt ist lel (AUF DEM DMG ARRAY)
@@ -1097,6 +1419,7 @@ int createTermbox(){
 			player1->isDead--;
 			player1->x = map_ptr->spawnAx;
 			player1->y = map_ptr->spawnAy;
+			player1->bombs = MAXBOMBCOUNT;
 			print_dead_msg(1);
 			for (int i = 0; 2 > i; i++){
 				usleep(250000);
@@ -1115,6 +1438,7 @@ int createTermbox(){
 			player2->isDead--;
 			player2->x = map_ptr->spawnBx;
 			player2->y = map_ptr->spawnBy;
+			player2->bombs = MAXBOMBCOUNT;
 			print_dead_msg(2);
 			for (int i = 0; 2 > i; i++){
 				usleep(250000);
@@ -1505,6 +1829,34 @@ void read_map(struct map *ptr, char *str){
 		}
 		if (tmp != -1)
 			SCHRITTWEITE = tmp;
+		c = getc(file);//für ' '
+		//ITEMS
+		tmp = -1;
+		c = getc(file);//erste Zahl
+		while (c >= '0' && c <= '9'){
+			if (tmp == -1){
+				tmp = 0;
+			}
+			tmp *= 10;
+			tmp += c - '0';
+			c = getc(file);
+		}
+		if (tmp != -1)
+			ITEMS = tmp;
+		c = getc(file);//für ' '
+		//ITEMSCHANCE
+		tmp = -1;
+		c = getc(file);//erste Zahl
+		while (c >= '0' && c <= '9'){
+			if (tmp == -1){
+				tmp = 0;
+			}
+			tmp *= 10;
+			tmp += c - '0';
+			c = getc(file);
+		}
+		if (tmp != -1)
+			ITEMSCHANCE = tmp;
 		c = getc(file);//für '\n' oder EOF
 	}
 	fclose(file);
@@ -1604,8 +1956,6 @@ void show_endanim(){
 } 
 
 /*
-Items
-
 Labyrinth
 generator
 */
