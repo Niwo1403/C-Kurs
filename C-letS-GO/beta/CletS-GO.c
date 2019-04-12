@@ -139,7 +139,7 @@ int main(int argc, char **argv){
 	}
 	else if(winner == 1){
 		// Einer gewinnt
-		printf(BOLD GREEN "\nPlayer 1 wins with %d lives left!\n\n" RESET, player2->isDead);
+		printf(BOLD GREEN "\nPlayer 1 wins with %d lives left!\n\n" RESET, player1->isDead);
 	} else if (winner == 2){
 		// Einer gewinnt
 		printf(BOLD GREEN "\nPlayer 2 wins with %d lives left!\n\n" RESET, player2->isDead);
